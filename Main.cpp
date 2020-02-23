@@ -9,6 +9,7 @@ int main(void)
     if (!glfwInit())
         return -1;
 
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
     if (!window)
     {
@@ -16,7 +17,7 @@ int main(void)
         return -1;
     }
 
-    VulkanInstanceInfo instanceInfo = InitializeVulkan();
+    VulkanInstanceInfo instanceInfo = InitializeVulkan(window);
 
     while (!glfwWindowShouldClose(window))
     {

@@ -8,3 +8,11 @@ VulkanExtensionInfo GetVulkanExtensionInfo()
 
 	return { extensionCount, extensionNames };
 }
+
+VkSurfaceKHR CreateVulkanSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
+{
+	VkSurfaceKHR vkSurface;
+	glfwCreateWindowSurface(vkInstance, glfwWindow, nullptr, &vkSurface);
+
+	return vkSurface;
+}

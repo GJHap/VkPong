@@ -3,27 +3,17 @@
 
 #include <vector>
 
-VkPhysicalDevice CreatePhysicalDevice(const VkInstance& instance);
-VkInstance CreateInstance();
+static VkInstance CreateInstance();
+static VkPhysicalDevice CreatePhysicalDevice(const VkInstance&);
 
-VulkanInstanceInfo InitializeVulkan()
+VulkanInstanceInfo InitializeVulkan(GLFWwindow* glfwWindow)
 {
 	VulkanInstanceInfo info = {};
 	info.Instance = CreateInstance();
 	info.PhysicalDevice = CreatePhysicalDevice(info.Instance);
+	info.Surface = CreateVulkanSurface(info.Instance, glfwWindow);
 
 	return info;
-}
-
-static VkPhysicalDevice CreatePhysicalDevice(const VkInstance& instance)
-{
-	uint32_t physicalDeviceCount;
-	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
-
-	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
-
-	return physicalDevices[0];
 }
 
 static VkInstance CreateInstance()
@@ -39,4 +29,15 @@ static VkInstance CreateInstance()
 	vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance);
 
 	return vkInstance;
+}
+
+static VkPhysicalDevice CreatePhysicalDevice(const VkInstance& instance)
+{
+	uint32_t physicalDeviceCount;
+	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+
+	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
+
+	return physicalDevices[0];
 }
