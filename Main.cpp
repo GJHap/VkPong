@@ -1,5 +1,6 @@
 #include <GLFW/glfw3.h>
 #include <vulkan\vulkan.h>
+#include "VulkanInitialization.h"
 
 int main(void)
 {
@@ -14,6 +15,8 @@ int main(void)
         glfwTerminate();
         return -1;
     }
+
+    VulkanInstanceInfo instanceInfo = InitializeVulkan();
 
     while (!glfwWindowShouldClose(window))
     {
