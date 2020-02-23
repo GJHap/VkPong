@@ -4,6 +4,7 @@
 
 struct VulkanInstanceInfo
 {
+	VkPhysicalDevice PhysicalDevice;
 	VkInstance Instance;
 };
 
