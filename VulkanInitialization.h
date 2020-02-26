@@ -5,8 +5,11 @@
 
 struct VulkanInstanceInfo
 {
+	VkQueue GraphicsQueue;
 	VkInstance Instance;
+	VkDevice LogicalDevice;
 	VkPhysicalDevice PhysicalDevice;
+	VkQueue PresentQueue;
 	VkSurfaceKHR Surface;
 };
 
