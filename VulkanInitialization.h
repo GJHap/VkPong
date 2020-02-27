@@ -5,6 +5,7 @@
 
 struct VulkanInstanceInfo
 {
+	VkCommandBuffer commandBuffer;
 	VkCommandPool commandPool;
 	VkQueue graphicsQueue;
 	VkInstance instance;
@@ -14,4 +15,4 @@ struct VulkanInstanceInfo
 	VkSurfaceKHR surface;
 };
 
-VulkanInstanceInfo InitializeVulkan(GLFWwindow*);
+VulkanInstanceInfo initializeVulkan(GLFWwindow*);

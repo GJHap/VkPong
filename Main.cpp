@@ -17,7 +17,7 @@ int main(void)
         return -1;
     }
 
-    VulkanInstanceInfo instanceInfo = InitializeVulkan(window);
+    VulkanInstanceInfo instanceInfo = initializeVulkan(window);
 
     while (!glfwWindowShouldClose(window))
     {

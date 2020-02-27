@@ -1,7 +1,7 @@
+#include "VulkanInitialization.h"
+
 #include <algorithm>
 #include <vector>
-
-#include "VulkanInitialization.h"
 
 #include <GLFW\glfw3.h>
 
@@ -26,34 +26,57 @@ struct VulkanQueueFamilyIndexInfo
 	uint32_t presentQueueFamilyIndex;
 };
 
-static VkCommandPool CreateCommandPool(const VkDevice&, const uint32_t&);
-static VkDeviceQueueCreateInfo CreateDeviceQueueCreateInfo(const uint32_t&);
-static VkInstance CreateInstance();
-static VulkanLogicalDeviceInfo CreateLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
-static VkPhysicalDevice CreatePhysicalDevice(const VkInstance&);
-static VkSurfaceKHR CreateVulkanSurface(const VkInstance&, GLFWwindow*);
-static std::vector<const char*> GetVulkanInstanceExtensions();
-static VulkanQueueFamilyIndexInfo GetVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
-static bool IsSurfaceSupported(const VkPhysicalDevice&, const VkSurfaceKHR&, const uint32_t&);
+static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&);
+static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
+static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
+static VkInstance createInstance();
+static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
+static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
+static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
+static std::vector<const char*> getVulkanInstanceExtensions();
+static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
+static bool isSurfaceSupported(const VkPhysicalDevice&, const VkSurfaceKHR&, const uint32_t&);
 
-VulkanInstanceInfo InitializeVulkan(GLFWwindow* glfwWindow)
+VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
 {
 	VulkanInstanceInfo info = {};
-	info.instance = CreateInstance();
-	info.physicalDevice = CreatePhysicalDevice(info.instance);
-	info.surface = CreateVulkanSurface(info.instance, glfwWindow);
+	info.instance = createInstance();
+	info.physicalDevice = createPhysicalDevice(info.instance);
+	info.surface = createVulkanSurface(info.instance, glfwWindow);
 
-	VulkanLogicalDeviceInfo logicalDeviceInfo = CreateLogicalDevice(info.physicalDevice, info.surface);
+	VulkanLogicalDeviceInfo logicalDeviceInfo = createLogicalDevice(info.physicalDevice, info.surface);
 	info.logicalDevice = logicalDeviceInfo.logicalDevice;
 	info.graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
 	info.presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
 
-	info.commandPool = CreateCommandPool(info.logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
+	info.commandPool = createCommandPool(info.logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
+	info.commandBuffer = createCommandBuffer(info.commandPool, info.logicalDevice);
 
 	return info;
 }
 
-static VkCommandPool CreateCommandPool(const VkDevice& logicalDevice, const uint32_t& queueFamilyIndex)
+static VkCommandBuffer createCommandBuffer(const VkCommandPool& commandPool, const VkDevice& logicalDevice)
+{
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferAllocateInfo.commandBufferCount = 1;
+	commandBufferAllocateInfo.commandPool = commandPool;
+	commandBufferAllocateInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+
+	vkEndCommandBuffer(commandBuffer);
+
+	return commandBuffer;
+}
+
+static VkCommandPool createCommandPool(const VkDevice& logicalDevice, const uint32_t& queueFamilyIndex)
 {
 	VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -65,7 +88,7 @@ static VkCommandPool CreateCommandPool(const VkDevice& logicalDevice, const uint
 	return commandPool;
 }
 
-static VkDeviceQueueCreateInfo CreateDeviceQueueCreateInfo(const uint32_t& queueFamilyIndex)
+static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queueFamilyIndex)
 {
 	float queuePriority = 1.0f;
 
@@ -78,9 +101,9 @@ static VkDeviceQueueCreateInfo CreateDeviceQueueCreateInfo(const uint32_t& queue
 	return queueCreateInfo;
 }
 
-static VkInstance CreateInstance()
+static VkInstance createInstance()
 {
-	std::vector<const char*> instanceExtensions = GetVulkanInstanceExtensions();
+	std::vector<const char*> instanceExtensions = getVulkanInstanceExtensions();
 
 	VkApplicationInfo applicationInfo = {};
 	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -100,11 +123,11 @@ static VkInstance CreateInstance()
 	return vkInstance;
 }
 
-static VulkanLogicalDeviceInfo CreateLogicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
 {
-	VulkanQueueFamilyIndexInfo queueInfo = GetVulkanQueueInfo(physicalDevice, surface);
-	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = CreateDeviceQueueCreateInfo(queueInfo.graphicsQueueFamilyIndex);
-	VkDeviceQueueCreateInfo presentQueueCreateInfo = CreateDeviceQueueCreateInfo(queueInfo.presentQueueFamilyIndex);
+	VulkanQueueFamilyIndexInfo queueInfo = getVulkanQueueInfo(physicalDevice, surface);
+	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.graphicsQueueFamilyIndex);
+	VkDeviceQueueCreateInfo presentQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.presentQueueFamilyIndex);
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = { graphicsQueueCreateInfo, presentQueueCreateInfo };
 
 	VkDeviceCreateInfo info = {};
@@ -129,7 +152,7 @@ static VulkanLogicalDeviceInfo CreateLogicalDevice(const VkPhysicalDevice& physi
 	return { device, graphicsInfo, presentInfo };
 }
 
-static VkPhysicalDevice CreatePhysicalDevice(const VkInstance& instance)
+static VkPhysicalDevice createPhysicalDevice(const VkInstance& instance)
 {
 	uint32_t physicalDeviceCount;
 	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
@@ -140,7 +163,7 @@ static VkPhysicalDevice CreatePhysicalDevice(const VkInstance& instance)
 	return physicalDevices[0];
 }
 
-static VkSurfaceKHR CreateVulkanSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
+static VkSurfaceKHR createVulkanSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
 {
 	VkSurfaceKHR vkSurface;
 	glfwCreateWindowSurface(vkInstance, glfwWindow, nullptr, &vkSurface);
@@ -148,7 +171,7 @@ static VkSurfaceKHR CreateVulkanSurface(const VkInstance& vkInstance, GLFWwindow
 	return vkSurface;
 }
 
-static std::vector<const char*> GetVulkanInstanceExtensions()
+static std::vector<const char*> getVulkanInstanceExtensions()
 {
 	uint32_t extensionCount;
 	const char** ppExtensions = glfwGetRequiredInstanceExtensions(&extensionCount);
@@ -159,7 +182,7 @@ static std::vector<const char*> GetVulkanInstanceExtensions()
 	return extensions;
 }
 
-static VulkanQueueFamilyIndexInfo GetVulkanQueueInfo(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
 {
 	uint32_t queueFamilyPropertyCount;
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
@@ -177,7 +200,7 @@ static VulkanQueueFamilyIndexInfo GetVulkanQueueInfo(const VkPhysicalDevice& phy
 		}
 
 		
-		if (IsSurfaceSupported(physicalDevice, surface, i))
+		if (isSurfaceSupported(physicalDevice, surface, i))
 		{
 			queueInfo.presentQueueFamilyIndex = i;
 		}
@@ -186,7 +209,7 @@ static VulkanQueueFamilyIndexInfo GetVulkanQueueInfo(const VkPhysicalDevice& phy
 	return queueInfo;
 }
 
-static bool IsSurfaceSupported(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const uint32_t& queueFamilyIndex)
+static bool isSurfaceSupported(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const uint32_t& queueFamilyIndex)
 {
 	VkBool32 surfaceSupported;
 	vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, surface, &surfaceSupported);
