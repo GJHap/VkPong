@@ -67,10 +67,17 @@ static VkInstance CreateInstance()
 {
 	std::vector<const char*> instanceExtensions = GetVulkanInstanceExtensions();
 
+	VkApplicationInfo applicationInfo = {};
+	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	applicationInfo.pApplicationName = "VkPong";
+	applicationInfo.apiVersion = VK_MAKE_VERSION(12, 2, 132);
+	applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+
 	VkInstanceCreateInfo instanceCreateInfo = {};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instanceCreateInfo.enabledExtensionCount = instanceExtensions.size();
 	instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
+	instanceCreateInfo.pApplicationInfo = &applicationInfo;
 
 	VkInstance vkInstance;
 	vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance);
