@@ -5,12 +5,13 @@
 
 struct VulkanInstanceInfo
 {
-	VkQueue GraphicsQueue;
-	VkInstance Instance;
-	VkDevice LogicalDevice;
-	VkPhysicalDevice PhysicalDevice;
-	VkQueue PresentQueue;
-	VkSurfaceKHR Surface;
+	VkCommandPool commandPool;
+	VkQueue graphicsQueue;
+	VkInstance instance;
+	VkDevice logicalDevice;
+	VkPhysicalDevice physicalDevice;
+	VkQueue presentQueue;
+	VkSurfaceKHR surface;
 };
 
 VulkanInstanceInfo InitializeVulkan(GLFWwindow*);

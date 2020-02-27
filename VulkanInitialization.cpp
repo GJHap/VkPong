@@ -9,23 +9,24 @@ const static std::vector<const char*> ENABLED_DEVICE_EXTENSIONS {};
 
 struct VulkanQueueInfo
 {
-	uint32_t FamilyIndex;
-	VkQueue Queue;
+	uint32_t queueFamilyIndex;
+	VkQueue queue;
 };
 
 struct VulkanLogicalDeviceInfo
 {
-	VkDevice LogicalDevice;
-	VulkanQueueInfo GraphicsQueueInfo;
-	VulkanQueueInfo PresentQueueInfo;
+	VkDevice logicalDevice;
+	VulkanQueueInfo graphicsQueueInfo;
+	VulkanQueueInfo presentQueueInfo;
 };
 
 struct VulkanQueueFamilyIndexInfo
 {
-	uint32_t GraphicsFamilyIndex;
-	uint32_t PresentFamilyIndex;
+	uint32_t graphicsQueueFamilyIndex;
+	uint32_t presentQueueFamilyIndex;
 };
 
+static VkCommandPool CreateCommandPool(const VkDevice&, const uint32_t&);
 static VkDeviceQueueCreateInfo CreateDeviceQueueCreateInfo(const uint32_t&);
 static VkInstance CreateInstance();
 static VulkanLogicalDeviceInfo CreateLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
@@ -38,16 +39,30 @@ static bool IsSurfaceSupported(const VkPhysicalDevice&, const VkSurfaceKHR&, con
 VulkanInstanceInfo InitializeVulkan(GLFWwindow* glfwWindow)
 {
 	VulkanInstanceInfo info = {};
-	info.Instance = CreateInstance();
-	info.PhysicalDevice = CreatePhysicalDevice(info.Instance);
-	info.Surface = CreateVulkanSurface(info.Instance, glfwWindow);
+	info.instance = CreateInstance();
+	info.physicalDevice = CreatePhysicalDevice(info.instance);
+	info.surface = CreateVulkanSurface(info.instance, glfwWindow);
 
-	VulkanLogicalDeviceInfo logicalDeviceInfo = CreateLogicalDevice(info.PhysicalDevice, info.Surface);
-	info.LogicalDevice = logicalDeviceInfo.LogicalDevice;
-	info.GraphicsQueue = logicalDeviceInfo.GraphicsQueueInfo.Queue;
-	info.PresentQueue = logicalDeviceInfo.PresentQueueInfo.Queue;
+	VulkanLogicalDeviceInfo logicalDeviceInfo = CreateLogicalDevice(info.physicalDevice, info.surface);
+	info.logicalDevice = logicalDeviceInfo.logicalDevice;
+	info.graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
+	info.presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
+
+	info.commandPool = CreateCommandPool(info.logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 
 	return info;
+}
+
+static VkCommandPool CreateCommandPool(const VkDevice& logicalDevice, const uint32_t& queueFamilyIndex)
+{
+	VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex;
+
+	VkCommandPool commandPool;
+	vkCreateCommandPool(logicalDevice, &commandPoolCreateInfo, nullptr, &commandPool);
+
+	return commandPool;
 }
 
 static VkDeviceQueueCreateInfo CreateDeviceQueueCreateInfo(const uint32_t& queueFamilyIndex)
@@ -88,8 +103,8 @@ static VkInstance CreateInstance()
 static VulkanLogicalDeviceInfo CreateLogicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
 {
 	VulkanQueueFamilyIndexInfo queueInfo = GetVulkanQueueInfo(physicalDevice, surface);
-	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = CreateDeviceQueueCreateInfo(queueInfo.GraphicsFamilyIndex);
-	VkDeviceQueueCreateInfo presentQueueCreateInfo = CreateDeviceQueueCreateInfo(queueInfo.PresentFamilyIndex);
+	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = CreateDeviceQueueCreateInfo(queueInfo.graphicsQueueFamilyIndex);
+	VkDeviceQueueCreateInfo presentQueueCreateInfo = CreateDeviceQueueCreateInfo(queueInfo.presentQueueFamilyIndex);
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = { graphicsQueueCreateInfo, presentQueueCreateInfo };
 
 	VkDeviceCreateInfo info = {};
@@ -108,8 +123,8 @@ static VulkanLogicalDeviceInfo CreateLogicalDevice(const VkPhysicalDevice& physi
 	VkQueue presentQueue;
 	vkGetDeviceQueue(device, presentQueueCreateInfo.queueFamilyIndex, 0, &presentQueue);
 
-	VulkanQueueInfo graphicsInfo = { queueInfo.GraphicsFamilyIndex, graphicsQueue };
-	VulkanQueueInfo presentInfo = { queueInfo.PresentFamilyIndex, presentQueue };
+	VulkanQueueInfo graphicsInfo = { queueInfo.graphicsQueueFamilyIndex, graphicsQueue };
+	VulkanQueueInfo presentInfo = { queueInfo.presentQueueFamilyIndex, presentQueue };
 
 	return { device, graphicsInfo, presentInfo };
 }
@@ -158,13 +173,13 @@ static VulkanQueueFamilyIndexInfo GetVulkanQueueInfo(const VkPhysicalDevice& phy
 	{
 		if ((queueFamilyProperties[i].queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT) == VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
 		{
-			queueInfo.GraphicsFamilyIndex = i;
+			queueInfo.graphicsQueueFamilyIndex = i;
 		}
 
 		
 		if (IsSurfaceSupported(physicalDevice, surface, i))
 		{
-			queueInfo.PresentFamilyIndex = i;
+			queueInfo.presentQueueFamilyIndex = i;
 		}
 	}
 
