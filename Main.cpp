@@ -1,5 +1,9 @@
+#include <exception>
+#include <iostream>
+
 #include <GLFW/glfw3.h>
 #include <vulkan\vulkan.h>
+
 #include "VulkanInitialization.h"
 
 int main(void)
@@ -17,7 +21,15 @@ int main(void)
         return -1;
     }
 
-    VulkanInstanceInfo instanceInfo = initializeVulkan(window);
+    try
+    {
+        VulkanInstanceInfo instanceInfo = initializeVulkan(window);
+    }
+    catch (std::exception e)
+    {
+        std::cout << e.what() << std::endl;
+        throw e;
+    }
 
     while (!glfwWindowShouldClose(window))
     {

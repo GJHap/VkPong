@@ -1,6 +1,9 @@
 #include "VulkanInitialization.h"
 
 #include <algorithm>
+#include <stdexcept>
+#include <string>
+#include <sstream>
 #include <vector>
 
 #include <GLFW\glfw3.h>
@@ -36,6 +39,7 @@ static VkRenderPass createRenderPass(const VkDevice&);
 static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static std::vector<const char*> getVulkanInstanceExtensions();
 static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
+static void handleError(VkResult, const std::string&);
 static bool isSurfaceSupported(const VkPhysicalDevice&, const VkSurfaceKHR&, const uint32_t&);
 
 VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
@@ -66,14 +70,14 @@ static VkCommandBuffer createCommandBuffer(const VkCommandPool& commandPool, con
 	commandBufferAllocateInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
 	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer);
+	handleError(vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer), "Failed to allocate command buffer.");
 
 	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
 	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+	handleError(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo), "Failed to begin recording command buffer.");
 
-	vkEndCommandBuffer(commandBuffer);
+	handleError(vkEndCommandBuffer(commandBuffer), "Failed to finish recording command buffer.");
 
 	return commandBuffer;
 }
@@ -85,7 +89,7 @@ static VkCommandPool createCommandPool(const VkDevice& logicalDevice, const uint
 	commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex;
 
 	VkCommandPool commandPool;
-	vkCreateCommandPool(logicalDevice, &commandPoolCreateInfo, nullptr, &commandPool);
+	handleError(vkCreateCommandPool(logicalDevice, &commandPoolCreateInfo, nullptr, &commandPool), "Failed to create command pool.");
 
 	return commandPool;
 }
@@ -120,7 +124,7 @@ static VkInstance createInstance()
 	instanceCreateInfo.pApplicationInfo = &applicationInfo;
 
 	VkInstance vkInstance;
-	vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance);
+	handleError(vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance), "Failed to create instance.");
 
 	return vkInstance;
 }
@@ -140,7 +144,7 @@ static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physi
 	info.queueCreateInfoCount = queueCreateInfos.size();
 
 	VkDevice device;
-	vkCreateDevice(physicalDevice, &info, nullptr, &device);
+	handleError(vkCreateDevice(physicalDevice, &info, nullptr, &device), "Failed to create logical device.");
 
 	VkQueue graphicsQueue;
 	vkGetDeviceQueue(device, graphicsQueueCreateInfo.queueFamilyIndex, 0, &graphicsQueue);
@@ -184,7 +188,7 @@ static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 
 	VkRenderPass renderPass;
-	vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
+	handleError(vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, nullptr, &renderPass), "Failed to create render pass.");
 
 	return renderPass;
 }
@@ -192,10 +196,10 @@ static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
 static VkPhysicalDevice createPhysicalDevice(const VkInstance& instance)
 {
 	uint32_t physicalDeviceCount;
-	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+	handleError(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr), "Failed to get physical device.");
 
 	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
+	handleError(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data()), "Failed to get physical device.");
 
 	return physicalDevices[0];
 }
@@ -203,7 +207,7 @@ static VkPhysicalDevice createPhysicalDevice(const VkInstance& instance)
 static VkSurfaceKHR createVulkanSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
 {
 	VkSurfaceKHR vkSurface;
-	glfwCreateWindowSurface(vkInstance, glfwWindow, nullptr, &vkSurface);
+	handleError(glfwCreateWindowSurface(vkInstance, glfwWindow, nullptr, &vkSurface), "Failed to create surface.");
 
 	return vkSurface;
 }
@@ -246,10 +250,26 @@ static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice& phy
 	return queueInfo;
 }
 
+static void handleError(VkResult result, const std::string& errorMessage)
+{
+	std::stringstream ss;
+	switch (result)
+	{
+	case VkResult::VK_SUCCESS:
+		break;
+	case VkResult::VK_ERROR_EXTENSION_NOT_PRESENT:
+		ss << errorMessage << " Extension not present.";
+		throw std::runtime_error(ss.str());
+	default:
+		ss << errorMessage;
+		throw std::runtime_error(ss.str());
+	}
+}
+
 static bool isSurfaceSupported(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const uint32_t& queueFamilyIndex)
 {
 	VkBool32 surfaceSupported;
-	vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, surface, &surfaceSupported);
+	handleError(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, surface, &surfaceSupported), "Failed to determine surface support.");
 
 	return surfaceSupported == VK_TRUE;
 }
