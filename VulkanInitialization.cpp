@@ -32,6 +32,7 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
 static VkInstance createInstance();
 static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
+static VkRenderPass createRenderPass(const VkDevice&);
 static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static std::vector<const char*> getVulkanInstanceExtensions();
 static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
@@ -51,6 +52,7 @@ VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
 
 	info.commandPool = createCommandPool(info.logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 	info.commandBuffer = createCommandBuffer(info.commandPool, info.logicalDevice);
+	info.renderPass = createRenderPass(info.logicalDevice);
 
 	return info;
 }
@@ -150,6 +152,41 @@ static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physi
 	VulkanQueueInfo presentInfo = { queueInfo.presentQueueFamilyIndex, presentQueue };
 
 	return { device, graphicsInfo, presentInfo };
+}
+
+static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
+{
+	VkAttachmentDescription attachmentDescription;
+	attachmentDescription.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	attachmentDescription.flags = VkAttachmentDescriptionFlagBits::VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
+	attachmentDescription.format = VkFormat::VK_FORMAT_R8_UNORM;
+	attachmentDescription.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	attachmentDescription.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDescription.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+	attachmentDescription.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+	attachmentDescription.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDescription.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+
+	VkAttachmentReference attachmentReference = {};
+	attachmentReference.attachment = 0;
+	attachmentReference.layout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpassDescription = {};
+	subpassDescription.colorAttachmentCount = 1;
+	subpassDescription.pColorAttachments = &attachmentReference;
+	subpassDescription.pipelineBindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.attachmentCount = 1;
+	renderPassCreateInfo.pAttachments = &attachmentDescription;
+	renderPassCreateInfo.pSubpasses = &subpassDescription;
+	renderPassCreateInfo.subpassCount = 1;
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+
+	VkRenderPass renderPass;
+	vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
+
+	return renderPass;
 }
 
 static VkPhysicalDevice createPhysicalDevice(const VkInstance& instance)

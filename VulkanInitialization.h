@@ -12,6 +12,7 @@ struct VulkanInstanceInfo
 	VkDevice logicalDevice;
 	VkPhysicalDevice physicalDevice;
 	VkQueue presentQueue;
+	VkRenderPass renderPass;
 	VkSurfaceKHR surface;
 };
 
