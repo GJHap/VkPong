@@ -60,6 +60,7 @@ static VkRenderPass createRenderPass(const VkDevice&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
 static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
+static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo& graphicsQueueCreateInfo, const VkDeviceQueueCreateInfo& presentQueueCreateInfo);
 static std::vector<const char*> getVulkanInstanceExtensions();
 static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static void handleError(VkResult, const std::string&);
@@ -228,7 +229,7 @@ static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physi
 	VulkanQueueFamilyIndexInfo queueInfo = getVulkanQueueInfo(physicalDevice, surface);
 	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.graphicsQueueFamilyIndex);
 	VkDeviceQueueCreateInfo presentQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.presentQueueFamilyIndex);
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = { graphicsQueueCreateInfo, presentQueueCreateInfo };
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = getDeviceCreateInfos(graphicsQueueCreateInfo, presentQueueCreateInfo);
 
 	VkDeviceCreateInfo info = {};
 	info.enabledExtensionCount = ENABLED_DEVICE_EXTENSIONS.size();
@@ -320,6 +321,22 @@ static VkBool32 debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTy
 {
 	std::cerr << pMessage << "\n\n";
 	return VK_FALSE;
+}
+
+static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo& graphicsQueueCreateInfo, const VkDeviceQueueCreateInfo& presentQueueCreateInfo)
+{
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+	if (graphicsQueueCreateInfo.queueFamilyIndex == presentQueueCreateInfo.queueFamilyIndex)
+	{
+		queueCreateInfos = { graphicsQueueCreateInfo };
+	}
+	else
+	{
+		queueCreateInfos = { graphicsQueueCreateInfo, presentQueueCreateInfo };
+	}
+
+	return queueCreateInfos;
 }
 
 static std::vector<const char*> getVulkanInstanceExtensions()
