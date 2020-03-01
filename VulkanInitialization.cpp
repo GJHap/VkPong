@@ -46,6 +46,9 @@ struct VulkanQueueFamilyIndexInfo
 	uint32_t presentQueueFamilyIndex;
 };
 
+static VkApplicationInfo createApplicationInfo();
+static VkAttachmentDescription createAttachmentDescription();
+static VkAttachmentReference createAttachmentReference();
 static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&);
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
@@ -54,12 +57,14 @@ static VkInstance createInstance();
 static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
 static VkRenderPass createRenderPass(const VkDevice&);
+static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
 static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
 static std::vector<const char*> getVulkanInstanceExtensions();
 static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static void handleError(VkResult, const std::string&);
 static bool isSurfaceSupported(const VkPhysicalDevice&, const VkSurfaceKHR&, const uint32_t&);
+static void recordCommandBuffer(const VkCommandBuffer&);
 static void vulkanDestroyDebugReportCallbackEXT(const VkInstance&, VkDebugReportCallbackEXT, const VkAllocationCallbacks*);
 static VkResult vulkanCreateDebugReportCallbackEXT(const VkInstance&, const VkDebugReportCallbackCreateInfoEXT*, const VkAllocationCallbacks*, VkDebugReportCallbackEXT*);
 
@@ -88,23 +93,57 @@ VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
 	return info;
 }
 
+static VkApplicationInfo createApplicationInfo()
+{
+	VkApplicationInfo applicationInfo = {};
+	applicationInfo.apiVersion = VK_MAKE_VERSION(12, 2, 132);
+	applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	applicationInfo.engineVersion = 0;
+	applicationInfo.pApplicationName = "VkPong";
+	applicationInfo.pNext = nullptr;
+	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+
+	return applicationInfo;
+}
+
+static VkAttachmentDescription createAttachmentDescription()
+{
+	VkAttachmentDescription attachmentDescription;
+	attachmentDescription.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	attachmentDescription.flags = VkAttachmentDescriptionFlagBits::VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
+	attachmentDescription.format = VkFormat::VK_FORMAT_R8_UNORM;
+	attachmentDescription.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	attachmentDescription.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDescription.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+	attachmentDescription.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
+	attachmentDescription.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDescription.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+
+	return attachmentDescription;
+}
+
+static VkAttachmentReference createAttachmentReference()
+{
+	VkAttachmentReference attachmentReference = {};
+	attachmentReference.attachment = 0;
+	attachmentReference.layout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	return attachmentReference;
+}
+
 static VkCommandBuffer createCommandBuffer(const VkCommandPool& commandPool, const VkDevice& logicalDevice)
 {
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
-	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferAllocateInfo.commandBufferCount = 1;
 	commandBufferAllocateInfo.commandPool = commandPool;
 	commandBufferAllocateInfo.level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferAllocateInfo.pNext = nullptr;
+	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 
 	VkCommandBuffer commandBuffer;
 	handleError(vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer), "Failed to allocate command buffer.");
 
-	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
-	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-	handleError(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo), "Failed to begin recording command buffer.");
-
-	handleError(vkEndCommandBuffer(commandBuffer), "Failed to finish recording command buffer.");
+	recordCommandBuffer(commandBuffer);
 
 	return commandBuffer;
 }
@@ -145,10 +184,12 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queue
 	float queuePriority = 1.0f;
 
 	VkDeviceQueueCreateInfo queueCreateInfo = {};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
-	queueCreateInfo.queueCount = 1;
+	queueCreateInfo.flags = 0;
+	queueCreateInfo.pNext = nullptr;
 	queueCreateInfo.pQueuePriorities = &queuePriority;
+	queueCreateInfo.queueCount = 1;
+	queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 
 	return queueCreateInfo;
 }
@@ -164,11 +205,7 @@ static VkInstance createInstance()
 		std::copy(INSTANCE_EXTENSIONS.begin(), INSTANCE_EXTENSIONS.end(), std::back_inserter(instanceExtensions));
 	}
 
-	VkApplicationInfo applicationInfo = {};
-	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	applicationInfo.pApplicationName = "VkPong";
-	applicationInfo.apiVersion = VK_MAKE_VERSION(12, 2, 132);
-	applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	VkApplicationInfo applicationInfo = createApplicationInfo();
 
 	VkInstanceCreateInfo instanceCreateInfo = {};
 	instanceCreateInfo.enabledExtensionCount = instanceExtensions.size();
@@ -194,11 +231,16 @@ static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physi
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = { graphicsQueueCreateInfo, presentQueueCreateInfo };
 
 	VkDeviceCreateInfo info = {};
-	info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	info.ppEnabledExtensionNames = ENABLED_DEVICE_EXTENSIONS.data();
 	info.enabledExtensionCount = ENABLED_DEVICE_EXTENSIONS.size();
+	info.enabledLayerCount = 0;
+	info.flags = 0;
+	info.pEnabledFeatures = nullptr;
+	info.pNext = nullptr;
+	info.ppEnabledExtensionNames = ENABLED_DEVICE_EXTENSIONS.data();
+	info.ppEnabledLayerNames = nullptr;
 	info.pQueueCreateInfos = queueCreateInfos.data();
 	info.queueCreateInfoCount = queueCreateInfos.size();
+	info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
 	VkDevice device;
 	handleError(vkCreateDevice(physicalDevice, &info, nullptr, &device), "Failed to create logical device.");
@@ -215,41 +257,6 @@ static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physi
 	return { device, graphicsInfo, presentInfo };
 }
 
-static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
-{
-	VkAttachmentDescription attachmentDescription;
-	attachmentDescription.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	attachmentDescription.flags = VkAttachmentDescriptionFlagBits::VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
-	attachmentDescription.format = VkFormat::VK_FORMAT_R8_UNORM;
-	attachmentDescription.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	attachmentDescription.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachmentDescription.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-	attachmentDescription.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
-	attachmentDescription.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
-	attachmentDescription.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
-
-	VkAttachmentReference attachmentReference = {};
-	attachmentReference.attachment = 0;
-	attachmentReference.layout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpassDescription = {};
-	subpassDescription.colorAttachmentCount = 2;
-	subpassDescription.pColorAttachments = &attachmentReference;
-	subpassDescription.pipelineBindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-	VkRenderPassCreateInfo renderPassCreateInfo = {};
-	renderPassCreateInfo.attachmentCount = 1;
-	renderPassCreateInfo.pAttachments = &attachmentDescription;
-	renderPassCreateInfo.pSubpasses = &subpassDescription;
-	renderPassCreateInfo.subpassCount = 1;
-	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-
-	VkRenderPass renderPass;
-	handleError(vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, nullptr, &renderPass), "Failed to create render pass.");
-
-	return renderPass;
-}
-
 static VkPhysicalDevice createPhysicalDevice(const VkInstance& instance)
 {
 	uint32_t physicalDeviceCount;
@@ -259,6 +266,46 @@ static VkPhysicalDevice createPhysicalDevice(const VkInstance& instance)
 	handleError(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data()), "Failed to get physical device.");
 
 	return physicalDevices[0];
+}
+
+static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
+{
+	VkAttachmentDescription attachmentDescription = createAttachmentDescription();
+	VkAttachmentReference attachmentReference = createAttachmentReference();
+	VkSubpassDescription subpassDescription = createSubpassDescription(attachmentReference);
+
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.attachmentCount = 1;
+	renderPassCreateInfo.dependencyCount = 0;
+	renderPassCreateInfo.flags = 0;
+	renderPassCreateInfo.pAttachments = &attachmentDescription;
+	renderPassCreateInfo.pDependencies = nullptr;
+	renderPassCreateInfo.pNext = nullptr;
+	renderPassCreateInfo.pSubpasses = &subpassDescription;
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.subpassCount = 1;
+
+	VkRenderPass renderPass;
+	handleError(vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, nullptr, &renderPass), "Failed to create render pass.");
+
+	return renderPass;
+}
+
+static VkSubpassDescription createSubpassDescription(const VkAttachmentReference& attachmentReference)
+{
+	VkSubpassDescription subpassDescription = {};
+	subpassDescription.colorAttachmentCount = 1;
+	subpassDescription.flags = 0;
+	subpassDescription.inputAttachmentCount = 0;
+	subpassDescription.pColorAttachments = &attachmentReference;
+	subpassDescription.pDepthStencilAttachment = nullptr;
+	subpassDescription.pInputAttachments = nullptr;
+	subpassDescription.pipelineBindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpassDescription.pPreserveAttachments = nullptr;
+	subpassDescription.preserveAttachmentCount = 0;
+	subpassDescription.pResolveAttachments = nullptr;
+
+	return subpassDescription;
 }
 
 static VkSurfaceKHR createVulkanSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
@@ -336,12 +383,22 @@ static bool isSurfaceSupported(const VkPhysicalDevice& physicalDevice, const VkS
 	return surfaceSupported == VK_TRUE;
 }
 
+static void recordCommandBuffer(const VkCommandBuffer& commandBuffer)
+{
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+	commandBufferBeginInfo.flags = 0;
+	commandBufferBeginInfo.pInheritanceInfo = nullptr;
+	commandBufferBeginInfo.pNext = nullptr;
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	handleError(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo), "Failed to begin recording command buffer.");
+
+	handleError(vkEndCommandBuffer(commandBuffer), "Failed to finish recording command buffer.");
+}
+
 static void vulkanDestroyDebugReportCallbackEXT(const VkInstance& instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator)
 {
-	PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT =
-		reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>
-		(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
-
+	PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT"));
 	vkDestroyDebugReportCallbackEXT(instance, callback, pAllocator);
 }
 
