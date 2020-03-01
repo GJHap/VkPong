@@ -8,6 +8,8 @@ struct VulkanInstanceInfo
 	VkCommandBuffer commandBuffer;
 	VkCommandPool commandPool;
 	VkDebugReportCallbackEXT debugReportCallback;
+	VkPipeline graphicsPipeline;
+	VkPipelineLayout graphicsPipelineLayout;
 	VkQueue graphicsQueue;
 	VkInstance instance;
 	VkDevice logicalDevice;

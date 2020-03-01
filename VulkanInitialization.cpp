@@ -1,10 +1,11 @@
 #include "VulkanInitialization.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <GLFW\glfw3.h>
@@ -53,14 +54,22 @@ static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
 static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
+static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
+static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
 static VkInstance createInstance();
 static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
+static VkPipelineRasterizationStateCreateInfo createPipelineRasterizationStateCreateInfo();
+static VkPipelineInputAssemblyStateCreateInfo createPipelineInputAssemblyStateCreateInfo();
 static VkRenderPass createRenderPass(const VkDevice&);
+static VkShaderModule createShaderModule(const VkDevice&, const std::string&);
+static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice&, const VkShaderStageFlagBits&, const std::string&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
+static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo();
 static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
-static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo& graphicsQueueCreateInfo, const VkDeviceQueueCreateInfo& presentQueueCreateInfo);
+static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo&, const VkDeviceQueueCreateInfo&);
+static std::vector<char> getShaderCode(const std::string&);
 static std::vector<const char*> getVulkanInstanceExtensions();
 static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static void handleError(VkResult, const std::string&);
@@ -90,6 +99,8 @@ VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
 	info.commandPool = createCommandPool(info.logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 	info.commandBuffer = createCommandBuffer(info.commandPool, info.logicalDevice);
 	info.renderPass = createRenderPass(info.logicalDevice);
+	info.graphicsPipelineLayout = createGraphicsPipelineLayout(info.logicalDevice);
+	info.graphicsPipeline = createGraphicsPipeline(info.graphicsPipelineLayout, info.logicalDevice, info.renderPass);
 
 	return info;
 }
@@ -195,6 +206,61 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queue
 	return queueCreateInfo;
 }
 
+static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelineLayout, const VkDevice& logicalDevice, const VkRenderPass& renderPass)
+{
+	VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo = createPipelineInputAssemblyStateCreateInfo();
+	VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo = createPipelineRasterizationStateCreateInfo();
+	VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo = createVertexInputStateCreateInfo();
+	std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfos
+	{
+		createShaderStageCreateInfo(logicalDevice, VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT, "./shaders/vertex/shader.spv"),
+		createShaderStageCreateInfo(logicalDevice, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT, "./shaders/fragment/shader.spv")
+	};
+
+	VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
+	graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+	graphicsPipelineCreateInfo.basePipelineIndex = 0;
+	graphicsPipelineCreateInfo.flags = 0;
+	graphicsPipelineCreateInfo.layout = graphicsPipelineLayout;
+	graphicsPipelineCreateInfo.pColorBlendState = nullptr;
+	graphicsPipelineCreateInfo.pDepthStencilState = nullptr;
+	graphicsPipelineCreateInfo.pDynamicState = nullptr;
+	graphicsPipelineCreateInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
+	graphicsPipelineCreateInfo.pMultisampleState = nullptr;
+	graphicsPipelineCreateInfo.pNext = nullptr;
+	graphicsPipelineCreateInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;
+	graphicsPipelineCreateInfo.pStages = shaderCreateInfos.data();
+	graphicsPipelineCreateInfo.pTessellationState = nullptr;
+	graphicsPipelineCreateInfo.pVertexInputState = &pipelineVertexInputStateCreateInfo;
+	graphicsPipelineCreateInfo.pViewportState = nullptr;
+	graphicsPipelineCreateInfo.renderPass = renderPass;
+	graphicsPipelineCreateInfo.stageCount = shaderCreateInfos.size();
+	graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	graphicsPipelineCreateInfo.subpass = 0;
+
+	VkPipeline graphicsPipeline;
+	handleError(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &graphicsPipeline), "Failed to create graphics pipeline.");
+
+	return graphicsPipeline;
+}
+
+static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice& logicalDevice)
+{
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+	pipelineLayoutCreateInfo.flags = 0;
+	pipelineLayoutCreateInfo.pNext = nullptr;
+	pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+	pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+	pipelineLayoutCreateInfo.setLayoutCount = 0;
+	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+	VkPipelineLayout pipelineLayout;
+	handleError(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout), "Failed to create graphics pipeline layout.");
+
+	return pipelineLayout;
+}
+
 static VkInstance createInstance()
 {
 	std::vector<const char*> instanceExtensions = getVulkanInstanceExtensions();
@@ -269,6 +335,38 @@ static VkPhysicalDevice createPhysicalDevice(const VkInstance& instance)
 	return physicalDevices[0];
 }
 
+static VkPipelineRasterizationStateCreateInfo createPipelineRasterizationStateCreateInfo()
+{
+	VkPipelineRasterizationStateCreateInfo rasterizationCreateInfo = {};
+	rasterizationCreateInfo.cullMode = VkCullModeFlagBits::VK_CULL_MODE_NONE;
+	rasterizationCreateInfo.depthBiasClamp = 0.0f;
+	rasterizationCreateInfo.depthBiasConstantFactor = 0.0f;
+	rasterizationCreateInfo.depthBiasEnable = VK_FALSE;
+	rasterizationCreateInfo.depthBiasSlopeFactor = 0.0f;
+	rasterizationCreateInfo.depthClampEnable = VK_FALSE;
+	rasterizationCreateInfo.flags = 0;
+	rasterizationCreateInfo.frontFace = VkFrontFace::VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizationCreateInfo.lineWidth = 1.0f;
+	rasterizationCreateInfo.pNext = nullptr;
+	rasterizationCreateInfo.polygonMode = VkPolygonMode::VK_POLYGON_MODE_FILL;
+	rasterizationCreateInfo.rasterizerDiscardEnable = VK_TRUE;
+	rasterizationCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+
+	return rasterizationCreateInfo;
+}
+
+static VkPipelineInputAssemblyStateCreateInfo createPipelineInputAssemblyStateCreateInfo()
+{
+	VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo = {};
+	pipelineInputAssemblyStateCreateInfo.flags = 0;
+	pipelineInputAssemblyStateCreateInfo.pNext = nullptr;
+	pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+	pipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	pipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+
+	return pipelineInputAssemblyStateCreateInfo;
+}
+
 static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
 {
 	VkAttachmentDescription attachmentDescription = createAttachmentDescription();
@@ -292,6 +390,39 @@ static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
 	return renderPass;
 }
 
+static VkShaderModule createShaderModule(const VkDevice& logicalDevice, const std::string& spirvPath)
+{
+	std::vector<char> shaderCode = getShaderCode(spirvPath);
+
+	VkShaderModuleCreateInfo shaderModuleCreateInfo = {};
+	shaderModuleCreateInfo.codeSize = shaderCode.size();
+	shaderModuleCreateInfo.flags = 0;
+	shaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(shaderCode.data());
+	shaderModuleCreateInfo.pNext = nullptr;
+	shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+	VkShaderModule shaderModule;
+	handleError(vkCreateShaderModule(logicalDevice, &shaderModuleCreateInfo, nullptr, &shaderModule), "Failed to create shader module from " + spirvPath + " .");
+
+	return shaderModule;
+}
+
+static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice& logicalDevice, const VkShaderStageFlagBits& shaderType, const std::string& spirvPath)
+{
+	VkShaderModule shaderModule = createShaderModule(logicalDevice, spirvPath);
+
+	VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
+	shaderCreateInfo.flags = 0;
+	shaderCreateInfo.module = shaderModule;
+	shaderCreateInfo.pName = "main";
+	shaderCreateInfo.pNext = nullptr;
+	shaderCreateInfo.pSpecializationInfo = nullptr;
+	shaderCreateInfo.stage = shaderType;
+	shaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+
+	return shaderCreateInfo;
+}
+
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference& attachmentReference)
 {
 	VkSubpassDescription subpassDescription = {};
@@ -307,6 +438,20 @@ static VkSubpassDescription createSubpassDescription(const VkAttachmentReference
 	subpassDescription.pResolveAttachments = nullptr;
 
 	return subpassDescription;
+}
+
+static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo()
+{
+	VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo = {};
+	pipelineVertexInputStateCreateInfo.flags = 0;
+	pipelineVertexInputStateCreateInfo.pNext = nullptr;
+	pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr;
+	pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr;
+	pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+	pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
+
+	return pipelineVertexInputStateCreateInfo;
 }
 
 static VkSurfaceKHR createVulkanSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
@@ -337,6 +482,19 @@ static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQ
 	}
 
 	return queueCreateInfos;
+}
+
+static std::vector<char> getShaderCode(const std::string& spirvPath)
+{
+	std::ifstream spirvFileStream(spirvPath, std::ios::binary);
+
+	std::vector<char> spirvCode;
+	if (spirvFileStream.is_open())
+	{
+		spirvCode = std::vector<char>(std::istreambuf_iterator<char>(spirvFileStream), std::istreambuf_iterator<char>());
+	}
+
+	return spirvCode;
 }
 
 static std::vector<const char*> getVulkanInstanceExtensions()

@@ -10,11 +10,11 @@ set (CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(Vulkan REQUIRED)
 add_subdirectory("3rdParty/glfw")
 
-FILE(GLOB TOOLS_FILES
-    ${SRCROOT}/shaders/fragment/*
-)
-
 set(SOURCE_LIST
+    ".gitignore"
+    ".gitmodules"
+    "README.md"
+    "LICENSE"
     "Main.cpp"
     "VulkanInitialization.h"
     "VulkanInitialization.cpp"
@@ -22,11 +22,22 @@ set(SOURCE_LIST
     "shaders/vertex/shader.vert"
     )
 
-add_executable(Pong ${SOURCE_LIST})
+add_executable(${PROJECT_NAME} ${SOURCE_LIST})
+
+add_custom_command(TARGET ${PROJECT_NAME}
+                   PRE_BUILD
+                   COMMAND glslc ${CMAKE_CURRENT_SOURCE_DIR}/shaders/vertex/shader.vert -o ${CMAKE_CURRENT_SOURCE_DIR}/shaders/vertex/shader.spv
+                   COMMAND glslc ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fragment/shader.frag -o ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fragment/shader.spv            
+)
+
+add_custom_command(TARGET ${PROJECT_NAME}
+                   POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders
+)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE_LIST})
 
-target_link_libraries(Pong 
+target_link_libraries(${PROJECT_NAME} 
                       PRIVATE Vulkan::Vulkan 
                       PUBLIC glfw
                      )
