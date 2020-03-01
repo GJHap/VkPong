@@ -7,6 +7,7 @@ struct VulkanInstanceInfo
 {
 	VkCommandBuffer commandBuffer;
 	VkCommandPool commandPool;
+	VkDebugReportCallbackEXT debugReportCallback;
 	VkQueue graphicsQueue;
 	VkInstance instance;
 	VkDevice logicalDevice;
