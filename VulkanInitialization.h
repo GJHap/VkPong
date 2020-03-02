@@ -11,6 +11,7 @@ struct VulkanInstanceInfo
 	VkPipeline graphicsPipeline;
 	VkPipelineLayout graphicsPipelineLayout;
 	VkQueue graphicsQueue;
+	VkImage image;
 	VkInstance instance;
 	VkDevice logicalDevice;
 	VkPhysicalDevice physicalDevice;
