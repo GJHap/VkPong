@@ -1,4 +1,4 @@
-#include "VulkanInitialization.h"
+#include "VulkanState.h"
 
 #include <algorithm>
 #include <fstream>
@@ -16,7 +16,7 @@ const bool enableValidation = false;
 const bool enableValidation = true;
 #endif
 
-const static std::vector<const char*> ENABLED_DEVICE_EXTENSIONS
+const static std::vector<const char*> DEVICE_EXTENSIONS
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
@@ -31,20 +31,20 @@ const static std::vector<const char*> INSTANCE_EXTENSIONS
 	"VK_EXT_debug_report"
 };
 
-struct VulkanQueueInfo
+struct QueueInfo
 {
 	uint32_t queueFamilyIndex;
 	VkQueue queue;
 };
 
-struct VulkanLogicalDeviceInfo
+struct LogicalDeviceInfo
 {
 	VkDevice logicalDevice;
-	VulkanQueueInfo graphicsQueueInfo;
-	VulkanQueueInfo presentQueueInfo;
+	QueueInfo graphicsQueueInfo;
+	QueueInfo presentQueueInfo;
 };
 
-struct VulkanQueueFamilyIndexInfo
+struct QueueFamilyIndexInfo
 {
 	uint32_t graphicsQueueFamilyIndex;
 	uint32_t presentQueueFamilyIndex;
@@ -64,7 +64,7 @@ static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
 static VkInstance createInstance();
 static VkImageSubresourceRange createImageSubresourceRange();
 static VkImageView createImageView(const VkDevice& logicalDevice, const VkImage& image, const VkFormat& format);
-static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
+static LogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
 static VkPipelineRasterizationStateCreateInfo createPipelineRasterizationStateCreateInfo();
 static VkPipelineInputAssemblyStateCreateInfo createPipelineInputAssemblyStateCreateInfo();
@@ -72,56 +72,67 @@ static VkRenderPass createRenderPass(const VkDevice&);
 static VkShaderModule createShaderModule(const VkDevice&, const std::string&);
 static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice&, const VkShaderStageFlagBits&, const std::string&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
+static VkSurfaceKHR createSurface(const VkInstance&, GLFWwindow*);
 static VkSwapchainKHR createSwapchain(const VkDevice&, const VkPhysicalDevice&, const VkSurfaceKHR&, const VkSurfaceFormatKHR&);
 static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo();
-static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
 static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo&, const VkDeviceQueueCreateInfo&);
 static std::vector<char> getShaderCode(const std::string&);
 static std::vector<const char*> getVulkanInstanceExtensions();
-static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
+static QueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static void handleError(VkResult, const std::string&);
 static bool isSurfaceSupported(const VkPhysicalDevice&, const VkSurfaceKHR&, const uint32_t&);
 static void recordCommandBuffer(const VkCommandBuffer&);
 static void vulkanDestroyDebugReportCallbackEXT(const VkInstance&, VkDebugReportCallbackEXT, const VkAllocationCallbacks*);
 static VkResult vulkanCreateDebugReportCallbackEXT(const VkInstance&, const VkDebugReportCallbackCreateInfoEXT*, const VkAllocationCallbacks*, VkDebugReportCallbackEXT*);
 
-VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
+VulkanState::VulkanState(GLFWwindow* glfwWindow)
 {
-	VulkanInstanceInfo info = {};
-	info.instance = createInstance();
+	m_instance = createInstance();
 
 	if (enableValidation)
 	{
-		info.debugReportCallback = createDebugReportCallback(info.instance);
+		m_debugReportCallback = createDebugReportCallback(m_instance);
 	}
 
-	info.physicalDevice = createPhysicalDevice(info.instance);
-	info.surface = createVulkanSurface(info.instance, glfwWindow);
+	m_physicalDevice = createPhysicalDevice(m_instance);
+	m_surface = createSurface(m_instance, glfwWindow);
 
-	VulkanLogicalDeviceInfo logicalDeviceInfo = createLogicalDevice(info.physicalDevice, info.surface);
-	info.logicalDevice = logicalDeviceInfo.logicalDevice;
-	info.graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
-	info.presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
-
-	info.commandPool = createCommandPool(info.logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
-	info.commandBuffer = createCommandBuffer(info.commandPool, info.logicalDevice);
-	info.renderPass = createRenderPass(info.logicalDevice);
-	info.graphicsPipelineLayout = createGraphicsPipelineLayout(info.logicalDevice);
-	info.graphicsPipeline = createGraphicsPipeline(info.graphicsPipelineLayout, info.logicalDevice, info.renderPass);
+	LogicalDeviceInfo logicalDeviceInfo = createLogicalDevice(m_physicalDevice, m_surface);
+	m_logicalDevice = logicalDeviceInfo.logicalDevice;
+	m_graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
+	m_presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
+	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
+	m_commandBuffer = createCommandBuffer(m_commandPool, m_logicalDevice);
+	m_renderPass = createRenderPass(m_logicalDevice);
+	m_graphicsPipelineLayout = createGraphicsPipelineLayout(m_logicalDevice);
+	m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass);
 
 	uint32_t surfaceFormatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, info.surface, &surfaceFormatCount, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount, nullptr);
 	std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, info.surface, &surfaceFormatCount, surfaceFormats.data());
+	vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount, surfaceFormats.data());
 	VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
 
-	info.swapChain = createSwapchain(info.logicalDevice, info.physicalDevice, info.surface, surfaceFormat);
+	m_swapChain = createSwapchain(m_logicalDevice, m_physicalDevice, m_surface, surfaceFormat);
 	uint32_t swapChainImageCount = 1;
-	vkGetSwapchainImagesKHR(info.logicalDevice, info.swapChain, &swapChainImageCount, &info.swapChainImage);
-	info.imageView = createImageView(info.logicalDevice, info.swapChainImage, surfaceFormat.format);
+	vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &swapChainImageCount, &m_swapChainImage);
+	m_imageView = createImageView(m_logicalDevice, m_swapChainImage, surfaceFormat.format);
+}
 
-	return info;
+VulkanState::~VulkanState()
+{
+	vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
+	vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr);
+	vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(m_logicalDevice, m_graphicsPipelineLayout, nullptr);
+	vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
+	vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &m_commandBuffer);
+	vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
+	vkDestroyDevice(m_logicalDevice, nullptr);
+	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+	vulkanDestroyDebugReportCallbackEXT(m_instance, m_debugReportCallback, nullptr);
+	vkDestroyInstance(m_instance, nullptr);
 }
 
 static VkApplicationInfo createApplicationInfo()
@@ -280,6 +291,11 @@ static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelin
 	VkPipeline graphicsPipeline;
 	handleError(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &graphicsPipeline), "Failed to create graphics pipeline.");
 
+	for (VkPipelineShaderStageCreateInfo shaderCreateInfo : shaderCreateInfos)
+	{
+		vkDestroyShaderModule(logicalDevice, shaderCreateInfo.module, nullptr);
+	}
+
 	return graphicsPipeline;
 }
 
@@ -354,25 +370,25 @@ static VkImageView createImageView(const VkDevice& logicalDevice, const VkImage&
 	imageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
 
 	VkImageView imageView;
-	vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, &imageView);
+	handleError(vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, &imageView), "Failed to create image view.");
 
 	return imageView;
 }
 
-static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+static LogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
 {
-	VulkanQueueFamilyIndexInfo queueInfo = getVulkanQueueInfo(physicalDevice, surface);
+	QueueFamilyIndexInfo queueInfo = getVulkanQueueInfo(physicalDevice, surface);
 	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.graphicsQueueFamilyIndex);
 	VkDeviceQueueCreateInfo presentQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.presentQueueFamilyIndex);
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = getDeviceCreateInfos(graphicsQueueCreateInfo, presentQueueCreateInfo);
 
 	VkDeviceCreateInfo info = {};
-	info.enabledExtensionCount = ENABLED_DEVICE_EXTENSIONS.size();
+	info.enabledExtensionCount = DEVICE_EXTENSIONS.size();
 	info.enabledLayerCount = 0;
 	info.flags = 0;
 	info.pEnabledFeatures = nullptr;
 	info.pNext = nullptr;
-	info.ppEnabledExtensionNames = ENABLED_DEVICE_EXTENSIONS.data();
+	info.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
 	info.ppEnabledLayerNames = nullptr;
 	info.pQueueCreateInfos = queueCreateInfos.data();
 	info.queueCreateInfoCount = queueCreateInfos.size();
@@ -387,8 +403,8 @@ static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physi
 	VkQueue presentQueue;
 	vkGetDeviceQueue(device, presentQueueCreateInfo.queueFamilyIndex, 0, &presentQueue);
 
-	VulkanQueueInfo graphicsInfo = { queueInfo.graphicsQueueFamilyIndex, graphicsQueue };
-	VulkanQueueInfo presentInfo = { queueInfo.presentQueueFamilyIndex, presentQueue };
+	QueueInfo graphicsInfo = { queueInfo.graphicsQueueFamilyIndex, graphicsQueue };
+	QueueInfo presentInfo = { queueInfo.presentQueueFamilyIndex, presentQueue };
 
 	return { device, graphicsInfo, presentInfo };
 }
@@ -509,15 +525,23 @@ static VkSubpassDescription createSubpassDescription(const VkAttachmentReference
 	return subpassDescription;
 }
 
+static VkSurfaceKHR createSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
+{
+	VkSurfaceKHR vkSurface;
+	handleError(glfwCreateWindowSurface(vkInstance, glfwWindow, nullptr, &vkSurface), "Failed to create surface.");
+
+	return vkSurface;
+}
+
 static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surfaceFormat)
 {
 	VkSurfaceCapabilitiesKHR capabilities;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities);
+	handleError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities), "Failed to get surface capabilities.");
 
 	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
+	handleError(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr), "Failed to get surface present modes.");
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data());
+	handleError(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()), "Failed to get surface present modes.");
 
 	VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
 	swapchainCreateInfo.clipped = VK_FALSE;
@@ -557,14 +581,6 @@ static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo()
 	pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
 
 	return pipelineVertexInputStateCreateInfo;
-}
-
-static VkSurfaceKHR createVulkanSurface(const VkInstance& vkInstance, GLFWwindow* glfwWindow)
-{
-	VkSurfaceKHR vkSurface;
-	handleError(glfwCreateWindowSurface(vkInstance, glfwWindow, nullptr, &vkSurface), "Failed to create surface.");
-
-	return vkSurface;
 }
 
 static VkBool32 debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData)
@@ -613,7 +629,7 @@ static std::vector<const char*> getVulkanInstanceExtensions()
 	return extensions;
 }
 
-static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+static QueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
 {
 	uint32_t queueFamilyPropertyCount;
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
@@ -621,7 +637,7 @@ static VulkanQueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice& phy
 	std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties.data());
 
-	VulkanQueueFamilyIndexInfo queueInfo = {};
+	QueueFamilyIndexInfo queueInfo = {};
 
 	for (auto i = 0; i < queueFamilyProperties.size(); ++i)
 	{

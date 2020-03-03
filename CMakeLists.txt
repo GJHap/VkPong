@@ -15,9 +15,9 @@ set(SOURCE_LIST
     ".gitmodules"
     "README.md"
     "LICENSE"
-    "Main.cpp"
-    "VulkanInitialization.h"
-    "VulkanInitialization.cpp"
+    "src/Main.cpp"
+    "src/VulkanState.h"
+    "src/VulkanState.cpp"
     "shaders/fragment/shader.frag"
     "shaders/vertex/shader.vert"
     )
