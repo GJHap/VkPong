@@ -54,10 +54,8 @@ static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
 static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
-static VkExtent3D createExtent(const uint32_t&, const uint32_t&);
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
 static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
-static VkImage createImage(const VkDevice&, const uint32_t&, const uint32_t&);
 static VkInstance createInstance();
 static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
@@ -103,11 +101,6 @@ VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
 	info.renderPass = createRenderPass(info.logicalDevice);
 	info.graphicsPipelineLayout = createGraphicsPipelineLayout(info.logicalDevice);
 	info.graphicsPipeline = createGraphicsPipeline(info.graphicsPipelineLayout, info.logicalDevice, info.renderPass);
-
-	int windowHeight;
-	int windowWidth;
-	glfwGetWindowSize(glfwWindow, &windowWidth, &windowHeight);
-	info.image = createImage(info.logicalDevice, windowHeight, windowWidth);
 
 	return info;
 }
@@ -213,16 +206,6 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queue
 	return queueCreateInfo;
 }
 
-static VkExtent3D createExtent(const uint32_t& height, const uint32_t& width)
-{
-	VkExtent3D extent;
-	extent.depth = 1;
-	extent.height = height;
-	extent.width = width;
-
-	return extent;
-}
-
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelineLayout, const VkDevice& logicalDevice, const VkRenderPass& renderPass)
 {
 	VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo = createPipelineInputAssemblyStateCreateInfo();
@@ -276,31 +259,6 @@ static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice& logicalDevi
 	handleError(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout), "Failed to create graphics pipeline layout.");
 
 	return pipelineLayout;
-}
-
-static VkImage createImage(const VkDevice& logicalDevice, const uint32_t& height, const uint32_t& width)
-{
-	VkImageCreateInfo imageCreateInfo = {};
-	imageCreateInfo.arrayLayers = 1;
-	imageCreateInfo.extent = createExtent(height, width);
-	imageCreateInfo.flags = 0;
-	imageCreateInfo.format = VkFormat::VK_FORMAT_R8_UNORM;
-	imageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
-	imageCreateInfo.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-	imageCreateInfo.mipLevels = 1;
-	imageCreateInfo.pNext = nullptr;
-	imageCreateInfo.pQueueFamilyIndices = nullptr;
-	imageCreateInfo.queueFamilyIndexCount = 0;
-	imageCreateInfo.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-	imageCreateInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageCreateInfo.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL;
-	imageCreateInfo.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	VkImage image;
-	handleError(vkCreateImage(logicalDevice, &imageCreateInfo, nullptr, &image), "Failed to create image handle.");
-
-	return image;
 }
 
 static VkInstance createInstance()
