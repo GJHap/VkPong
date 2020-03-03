@@ -16,7 +16,10 @@ const bool enableValidation = false;
 const bool enableValidation = true;
 #endif
 
-const static std::vector<const char*> ENABLED_DEVICE_EXTENSIONS{};
+const static std::vector<const char*> ENABLED_DEVICE_EXTENSIONS
+{
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
 
 const static std::vector<const char*> INSTANCE_VALIDATION_LAYERS
 {
@@ -54,6 +57,7 @@ static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
 static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
+static VkExtent2D createExtent(const uint32_t&, const uint32_t&);
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
 static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
 static VkInstance createInstance();
@@ -65,6 +69,7 @@ static VkRenderPass createRenderPass(const VkDevice&);
 static VkShaderModule createShaderModule(const VkDevice&, const std::string&);
 static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice&, const VkShaderStageFlagBits&, const std::string&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
+static VkSwapchainKHR createSwapchain(const VkDevice&, const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo();
 static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
@@ -101,6 +106,10 @@ VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
 	info.renderPass = createRenderPass(info.logicalDevice);
 	info.graphicsPipelineLayout = createGraphicsPipelineLayout(info.logicalDevice);
 	info.graphicsPipeline = createGraphicsPipeline(info.graphicsPipelineLayout, info.logicalDevice, info.renderPass);
+	info.swapChain = createSwapchain(info.logicalDevice, info.physicalDevice, info.surface);
+
+	uint32_t swapChainImageCount = 1;
+	vkGetSwapchainImagesKHR(info.logicalDevice, info.swapChain, &swapChainImageCount, &info.swapChainImage);
 
 	return info;
 }
@@ -204,6 +213,15 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queue
 	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 
 	return queueCreateInfo;
+}
+
+static VkExtent2D createExtent(const uint32_t& height, const uint32_t& width)
+{
+	VkExtent2D extent = {};
+	extent.height = height;
+	extent.width = width;
+
+	return extent;
 }
 
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelineLayout, const VkDevice& logicalDevice, const VkRenderPass& renderPass)
@@ -438,6 +456,47 @@ static VkSubpassDescription createSubpassDescription(const VkAttachmentReference
 	subpassDescription.pResolveAttachments = nullptr;
 
 	return subpassDescription;
+}
+
+static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities);
+
+	uint32_t surfaceFormatCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, nullptr);
+	std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, surfaceFormats.data());
+
+	uint32_t presentModeCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
+	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data());
+
+	VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
+	swapchainCreateInfo.clipped = VK_FALSE;
+	swapchainCreateInfo.compositeAlpha = VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	swapchainCreateInfo.flags = 0;
+	swapchainCreateInfo.imageArrayLayers = 1;
+	swapchainCreateInfo.imageColorSpace = surfaceFormats[0].colorSpace;
+	swapchainCreateInfo.imageExtent = createExtent(capabilities.currentExtent.height, capabilities.currentExtent.width);
+	swapchainCreateInfo.imageFormat = surfaceFormats[0].format;
+	swapchainCreateInfo.imageSharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+	swapchainCreateInfo.imageUsage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	swapchainCreateInfo.minImageCount = capabilities.minImageCount;
+	swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+	swapchainCreateInfo.pNext = nullptr;
+	swapchainCreateInfo.pQueueFamilyIndices = nullptr;
+	swapchainCreateInfo.presentMode = presentModes[0];
+	swapchainCreateInfo.preTransform = capabilities.currentTransform;
+	swapchainCreateInfo.queueFamilyIndexCount = 0;
+	swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	swapchainCreateInfo.surface = surface;
+
+	VkSwapchainKHR swapchain;
+	handleError(vkCreateSwapchainKHR(logicalDevice, &swapchainCreateInfo, nullptr, &swapchain), "Failed to create swapchain");
+
+	return swapchain;
 }
 
 static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo()
