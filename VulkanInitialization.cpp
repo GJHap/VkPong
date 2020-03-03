@@ -55,12 +55,15 @@ static VkAttachmentDescription createAttachmentDescription();
 static VkAttachmentReference createAttachmentReference();
 static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&);
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
+static VkComponentMapping createComponentMapping();
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
 static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
 static VkExtent2D createExtent(const uint32_t&, const uint32_t&);
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
 static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
 static VkInstance createInstance();
+static VkImageSubresourceRange createImageSubresourceRange();
+static VkImageView createImageView(const VkDevice& logicalDevice, const VkImage& image, const VkFormat& format);
 static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
 static VkPipelineRasterizationStateCreateInfo createPipelineRasterizationStateCreateInfo();
@@ -69,7 +72,7 @@ static VkRenderPass createRenderPass(const VkDevice&);
 static VkShaderModule createShaderModule(const VkDevice&, const std::string&);
 static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice&, const VkShaderStageFlagBits&, const std::string&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
-static VkSwapchainKHR createSwapchain(const VkDevice&, const VkPhysicalDevice&, const VkSurfaceKHR&);
+static VkSwapchainKHR createSwapchain(const VkDevice&, const VkPhysicalDevice&, const VkSurfaceKHR&, const VkSurfaceFormatKHR&);
 static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo();
 static VkSurfaceKHR createVulkanSurface(const VkInstance&, GLFWwindow*);
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
@@ -106,10 +109,17 @@ VulkanInstanceInfo initializeVulkan(GLFWwindow* glfwWindow)
 	info.renderPass = createRenderPass(info.logicalDevice);
 	info.graphicsPipelineLayout = createGraphicsPipelineLayout(info.logicalDevice);
 	info.graphicsPipeline = createGraphicsPipeline(info.graphicsPipelineLayout, info.logicalDevice, info.renderPass);
-	info.swapChain = createSwapchain(info.logicalDevice, info.physicalDevice, info.surface);
 
+	uint32_t surfaceFormatCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, info.surface, &surfaceFormatCount, nullptr);
+	std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, info.surface, &surfaceFormatCount, surfaceFormats.data());
+	VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
+
+	info.swapChain = createSwapchain(info.logicalDevice, info.physicalDevice, info.surface, surfaceFormat);
 	uint32_t swapChainImageCount = 1;
 	vkGetSwapchainImagesKHR(info.logicalDevice, info.swapChain, &swapChainImageCount, &info.swapChainImage);
+	info.imageView = createImageView(info.logicalDevice, info.swapChainImage, surfaceFormat.format);
 
 	return info;
 }
@@ -179,6 +189,17 @@ static VkCommandPool createCommandPool(const VkDevice& logicalDevice, const uint
 	handleError(vkCreateCommandPool(logicalDevice, &commandPoolCreateInfo, nullptr, &commandPool), "Failed to create command pool.");
 
 	return commandPool;
+}
+
+static VkComponentMapping createComponentMapping()
+{
+	VkComponentMapping componentMapping = {};
+	componentMapping.a = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+	componentMapping.b = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+	componentMapping.g = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+	componentMapping.r = VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY;
+
+	return componentMapping;
 }
 
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance& instance)
@@ -306,6 +327,36 @@ static VkInstance createInstance()
 	handleError(vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance), "Failed to create instance.");
 
 	return vkInstance;
+}
+
+static VkImageSubresourceRange createImageSubresourceRange()
+{
+	VkImageSubresourceRange imageSubresourceRange = {};
+	imageSubresourceRange.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+	imageSubresourceRange.baseArrayLayer = 0;
+	imageSubresourceRange.baseMipLevel = 0;
+	imageSubresourceRange.layerCount = 1;
+	imageSubresourceRange.levelCount = 1;
+
+	return imageSubresourceRange;
+}
+
+static VkImageView createImageView(const VkDevice& logicalDevice, const VkImage& image, const VkFormat& format)
+{
+	VkImageViewCreateInfo imageViewCreateInfo = {};
+	imageViewCreateInfo.components = createComponentMapping();
+	imageViewCreateInfo.flags = 0;
+	imageViewCreateInfo.format = format;
+	imageViewCreateInfo.image = image;
+	imageViewCreateInfo.pNext = nullptr;
+	imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	imageViewCreateInfo.subresourceRange = createImageSubresourceRange();
+	imageViewCreateInfo.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+
+	VkImageView imageView;
+	vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, &imageView);
+
+	return imageView;
 }
 
 static VulkanLogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
@@ -458,15 +509,10 @@ static VkSubpassDescription createSubpassDescription(const VkAttachmentReference
 	return subpassDescription;
 }
 
-static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
+static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surfaceFormat)
 {
 	VkSurfaceCapabilitiesKHR capabilities;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities);
-
-	uint32_t surfaceFormatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, nullptr);
-	std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, surfaceFormats.data());
 
 	uint32_t presentModeCount;
 	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
@@ -478,9 +524,9 @@ static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhy
 	swapchainCreateInfo.compositeAlpha = VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	swapchainCreateInfo.flags = 0;
 	swapchainCreateInfo.imageArrayLayers = 1;
-	swapchainCreateInfo.imageColorSpace = surfaceFormats[0].colorSpace;
+	swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
 	swapchainCreateInfo.imageExtent = createExtent(capabilities.currentExtent.height, capabilities.currentExtent.width);
-	swapchainCreateInfo.imageFormat = surfaceFormats[0].format;
+	swapchainCreateInfo.imageFormat = surfaceFormat.format;
 	swapchainCreateInfo.imageSharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
 	swapchainCreateInfo.imageUsage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	swapchainCreateInfo.minImageCount = capabilities.minImageCount;
