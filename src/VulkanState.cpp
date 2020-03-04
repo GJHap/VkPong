@@ -57,7 +57,7 @@ static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkComponentMapping createComponentMapping();
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
 static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
-static VkExtent2D createExtent(const uint32_t&, const uint32_t&);
+static VkFramebuffer createFramebuffer(const VkDevice&, const VkImageView&, const VkRenderPass&, const VkExtent2D&);
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
 static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
 static VkInstance createInstance();
@@ -72,7 +72,7 @@ static VkShaderModule createShaderModule(const VkDevice&, const std::string&);
 static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice&, const VkShaderStageFlagBits&, const std::string&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
 static VkSurfaceKHR createSurface(const VkInstance&, GLFWwindow*);
-static VkSwapchainKHR createSwapchain(const VkDevice&, const VkPhysicalDevice&, const VkSurfaceKHR&, const VkSurfaceFormatKHR&);
+static VkSwapchainKHR createSwapchain(const VkDevice&, const VkPhysicalDevice&, const VkSurfaceKHR&, const VkSurfaceFormatKHR&, const VkSurfaceCapabilitiesKHR&);
 static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo();
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
 static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo&, const VkDeviceQueueCreateInfo&);
@@ -108,29 +108,37 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 	vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount, surfaceFormats.data());
 	VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
 
-	m_swapChain = createSwapchain(m_logicalDevice, m_physicalDevice, m_surface, surfaceFormat);
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	handleError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, m_surface, &surfaceCapabilities), "Failed to get surface capabilities.");
+
+	m_renderPass = createRenderPass(m_logicalDevice, surfaceFormat.format);
+	m_graphicsPipelineLayout = createGraphicsPipelineLayout(m_logicalDevice);
+	m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass);
+	m_swapChain = createSwapchain(m_logicalDevice, m_physicalDevice, m_surface, surfaceFormat, surfaceCapabilities);
 	m_swapchainImages = getSwapchainImages(m_logicalDevice, m_swapChain);
 	std::transform(m_swapchainImages.cbegin(), m_swapchainImages.cend(), std::back_inserter(m_swapchainImageViews), [this, surfaceFormat](VkImage swapchainImage)
 	{
 		return createImageView(m_logicalDevice, swapchainImage, surfaceFormat.format);
 	});
+	std::transform(m_swapchainImageViews.cbegin(), m_swapchainImageViews.cend(), std::back_inserter(m_swapchainFramebuffers), [this, surfaceCapabilities](VkImageView swapchainImageView)
+	{
+		return createFramebuffer(m_logicalDevice, swapchainImageView, m_renderPass, surfaceCapabilities.currentExtent);
+	});
 
 	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 	m_commandBuffer = createCommandBuffer(m_commandPool, m_logicalDevice);
-	m_renderPass = createRenderPass(m_logicalDevice, surfaceFormat.format);
-	m_graphicsPipelineLayout = createGraphicsPipelineLayout(m_logicalDevice);
-	m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass);
 }
 
 VulkanState::~VulkanState()
 {
+	vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &m_commandBuffer);
+	vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
+	for (const VkFramebuffer& swapchainFramebuffer : m_swapchainFramebuffers) vkDestroyFramebuffer(m_logicalDevice, swapchainFramebuffer, nullptr);
+	for (const VkImageView& swapchainImageView : m_swapchainImageViews) vkDestroyImageView(m_logicalDevice, swapchainImageView, nullptr);
+	vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr);
 	vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_logicalDevice, m_graphicsPipelineLayout, nullptr);
 	vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
-	vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &m_commandBuffer);
-	vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
-	for (const VkImageView& swapchainImageView : m_swapchainImageViews) vkDestroyImageView(m_logicalDevice, swapchainImageView, nullptr);
-	vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr);
 	vkDestroyDevice(m_logicalDevice, nullptr);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vulkanDestroyDebugReportCallbackEXT(m_instance, m_debugReportCallback, nullptr);
@@ -249,13 +257,23 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queue
 	return queueCreateInfo;
 }
 
-static VkExtent2D createExtent(const uint32_t& height, const uint32_t& width)
+static VkFramebuffer createFramebuffer(const VkDevice& logicalDevice, const VkImageView& imageView, const VkRenderPass& renderPass, const VkExtent2D& extent)
 {
-	VkExtent2D extent = {};
-	extent.height = height;
-	extent.width = width;
+	VkFramebufferCreateInfo framebufferCreateInfo = {};
+	framebufferCreateInfo.attachmentCount = 1;
+	framebufferCreateInfo.flags = 0;
+	framebufferCreateInfo.height = extent.height;
+	framebufferCreateInfo.layers = 1;
+	framebufferCreateInfo.pAttachments = &imageView;
+	framebufferCreateInfo.pNext = nullptr;
+	framebufferCreateInfo.renderPass = renderPass;
+	framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferCreateInfo.width = extent.width;
 
-	return extent;
+	VkFramebuffer framebuffer;
+	handleError(vkCreateFramebuffer(logicalDevice, &framebufferCreateInfo, nullptr, &framebuffer), "Failed to create frame buffer.");
+
+	return framebuffer;
 }
 
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelineLayout, const VkDevice& logicalDevice, const VkRenderPass& renderPass)
@@ -535,11 +553,8 @@ static VkSurfaceKHR createSurface(const VkInstance& vkInstance, GLFWwindow* glfw
 	return vkSurface;
 }
 
-static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surfaceFormat)
+static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surfaceFormat, const VkSurfaceCapabilitiesKHR& surfaceCapabilities)
 {
-	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-	handleError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities), "Failed to get surface capabilities.");
-
 	uint32_t presentModeCount;
 	handleError(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr), "Failed to get surface present modes.");
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);

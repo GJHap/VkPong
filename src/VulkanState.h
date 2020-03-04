@@ -16,6 +16,7 @@ private:
 	VkQueue m_graphicsQueue;
 	VkInstance m_instance;
 	VkSwapchainKHR m_swapChain;
+	std::vector<VkFramebuffer> m_swapchainFramebuffers;
 	std::vector<VkImage> m_swapchainImages;
 	std::vector<VkImageView> m_swapchainImageViews;
 	VkDevice m_logicalDevice;
