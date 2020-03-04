@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <sstream>
 #include <string>
-#include <vector>
 
 #include <GLFW\glfw3.h>
 
@@ -78,6 +77,7 @@ static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo();
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
 static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo&, const VkDeviceQueueCreateInfo&);
 static std::vector<char> getShaderCode(const std::string&);
+static std::vector<VkImage> getSwapchainImages(const VkDevice& logicalDevice, const VkSwapchainKHR& swapchain);
 static std::vector<const char*> getVulkanInstanceExtensions();
 static QueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static void handleError(VkResult, const std::string&);
@@ -109,9 +109,11 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 	VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
 
 	m_swapChain = createSwapchain(m_logicalDevice, m_physicalDevice, m_surface, surfaceFormat);
-	uint32_t swapChainImageCount = 1;
-	vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &swapChainImageCount, &m_swapChainImage);
-	m_imageView = createImageView(m_logicalDevice, m_swapChainImage, surfaceFormat.format);
+	m_swapchainImages = getSwapchainImages(m_logicalDevice, m_swapChain);
+	std::transform(m_swapchainImages.cbegin(), m_swapchainImages.cend(), std::back_inserter(m_swapchainImageViews), [this, surfaceFormat](VkImage swapchainImage)
+	{
+		return createImageView(m_logicalDevice, swapchainImage, surfaceFormat.format);
+	});
 
 	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 	m_commandBuffer = createCommandBuffer(m_commandPool, m_logicalDevice);
@@ -127,7 +129,7 @@ VulkanState::~VulkanState()
 	vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 	vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &m_commandBuffer);
 	vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
-	vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
+	for (const VkImageView& swapchainImageView : m_swapchainImageViews) vkDestroyImageView(m_logicalDevice, swapchainImageView, nullptr);
 	vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr);
 	vkDestroyDevice(m_logicalDevice, nullptr);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
@@ -535,8 +537,8 @@ static VkSurfaceKHR createSurface(const VkInstance& vkInstance, GLFWwindow* glfw
 
 static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surfaceFormat)
 {
-	VkSurfaceCapabilitiesKHR capabilities;
-	handleError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities), "Failed to get surface capabilities.");
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	handleError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities), "Failed to get surface capabilities.");
 
 	uint32_t presentModeCount;
 	handleError(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr), "Failed to get surface present modes.");
@@ -549,16 +551,16 @@ static VkSwapchainKHR createSwapchain(const VkDevice& logicalDevice, const VkPhy
 	swapchainCreateInfo.flags = 0;
 	swapchainCreateInfo.imageArrayLayers = 1;
 	swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-	swapchainCreateInfo.imageExtent = createExtent(capabilities.currentExtent.height, capabilities.currentExtent.width);
+	swapchainCreateInfo.imageExtent = surfaceCapabilities.currentExtent;
 	swapchainCreateInfo.imageFormat = surfaceFormat.format;
 	swapchainCreateInfo.imageSharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
 	swapchainCreateInfo.imageUsage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	swapchainCreateInfo.minImageCount = capabilities.minImageCount;
+	swapchainCreateInfo.minImageCount = surfaceCapabilities.minImageCount;
 	swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 	swapchainCreateInfo.pNext = nullptr;
 	swapchainCreateInfo.pQueueFamilyIndices = nullptr;
 	swapchainCreateInfo.presentMode = presentModes[0];
-	swapchainCreateInfo.preTransform = capabilities.currentTransform;
+	swapchainCreateInfo.preTransform = surfaceCapabilities.currentTransform;
 	swapchainCreateInfo.queueFamilyIndexCount = 0;
 	swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	swapchainCreateInfo.surface = surface;
@@ -616,6 +618,17 @@ static std::vector<char> getShaderCode(const std::string& spirvPath)
 	}
 
 	return spirvCode;
+}
+
+static std::vector<VkImage> getSwapchainImages(const VkDevice& logicalDevice, const VkSwapchainKHR& swapchain)
+{
+	uint32_t imageCount;
+	vkGetSwapchainImagesKHR(logicalDevice, swapchain, &imageCount, nullptr);
+
+	std::vector<VkImage> swapchainImages(imageCount);
+	vkGetSwapchainImagesKHR(logicalDevice, swapchain, &imageCount, swapchainImages.data());
+
+	return swapchainImages;
 }
 
 static std::vector<const char*> getVulkanInstanceExtensions()

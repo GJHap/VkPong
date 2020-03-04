@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <vulkan\vulkan.h>
 #include <GLFW\glfw3.h>
 
@@ -12,10 +14,10 @@ private:
 	VkPipeline m_graphicsPipeline;
 	VkPipelineLayout m_graphicsPipelineLayout;
 	VkQueue m_graphicsQueue;
-	VkImageView m_imageView;
 	VkInstance m_instance;
 	VkSwapchainKHR m_swapChain;
-	VkImage m_swapChainImage;
+	std::vector<VkImage> m_swapchainImages;
+	std::vector<VkImageView> m_swapchainImageViews;
 	VkDevice m_logicalDevice;
 	VkPhysicalDevice m_physicalDevice;
 	VkQueue m_presentQueue;
