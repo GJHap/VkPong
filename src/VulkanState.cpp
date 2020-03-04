@@ -51,7 +51,7 @@ struct QueueFamilyIndexInfo
 };
 
 static VkApplicationInfo createApplicationInfo();
-static VkAttachmentDescription createAttachmentDescription();
+static VkAttachmentDescription createAttachmentDescription(const VkFormat&);
 static VkAttachmentReference createAttachmentReference();
 static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&);
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
@@ -68,7 +68,7 @@ static LogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSu
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
 static VkPipelineRasterizationStateCreateInfo createPipelineRasterizationStateCreateInfo();
 static VkPipelineInputAssemblyStateCreateInfo createPipelineInputAssemblyStateCreateInfo();
-static VkRenderPass createRenderPass(const VkDevice&);
+static VkRenderPass createRenderPass(const VkDevice&, const VkFormat&);
 static VkShaderModule createShaderModule(const VkDevice&, const std::string&);
 static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice&, const VkShaderStageFlagBits&, const std::string&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
@@ -97,16 +97,10 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 
 	m_physicalDevice = createPhysicalDevice(m_instance);
 	m_surface = createSurface(m_instance, glfwWindow);
-
 	LogicalDeviceInfo logicalDeviceInfo = createLogicalDevice(m_physicalDevice, m_surface);
 	m_logicalDevice = logicalDeviceInfo.logicalDevice;
 	m_graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
 	m_presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
-	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
-	m_commandBuffer = createCommandBuffer(m_commandPool, m_logicalDevice);
-	m_renderPass = createRenderPass(m_logicalDevice);
-	m_graphicsPipelineLayout = createGraphicsPipelineLayout(m_logicalDevice);
-	m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass);
 
 	uint32_t surfaceFormatCount;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &surfaceFormatCount, nullptr);
@@ -118,17 +112,23 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 	uint32_t swapChainImageCount = 1;
 	vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &swapChainImageCount, &m_swapChainImage);
 	m_imageView = createImageView(m_logicalDevice, m_swapChainImage, surfaceFormat.format);
+
+	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
+	m_commandBuffer = createCommandBuffer(m_commandPool, m_logicalDevice);
+	m_renderPass = createRenderPass(m_logicalDevice, surfaceFormat.format);
+	m_graphicsPipelineLayout = createGraphicsPipelineLayout(m_logicalDevice);
+	m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass);
 }
 
 VulkanState::~VulkanState()
 {
-	vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
-	vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr);
 	vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_logicalDevice, m_graphicsPipelineLayout, nullptr);
 	vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 	vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &m_commandBuffer);
 	vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
+	vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
+	vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr);
 	vkDestroyDevice(m_logicalDevice, nullptr);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vulkanDestroyDebugReportCallbackEXT(m_instance, m_debugReportCallback, nullptr);
@@ -148,12 +148,12 @@ static VkApplicationInfo createApplicationInfo()
 	return applicationInfo;
 }
 
-static VkAttachmentDescription createAttachmentDescription()
+static VkAttachmentDescription createAttachmentDescription(const VkFormat& format)
 {
 	VkAttachmentDescription attachmentDescription;
 	attachmentDescription.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	attachmentDescription.flags = VkAttachmentDescriptionFlagBits::VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
-	attachmentDescription.format = VkFormat::VK_FORMAT_R8_UNORM;
+	attachmentDescription.format = format;
 	attachmentDescription.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
 	attachmentDescription.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachmentDescription.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
@@ -452,9 +452,9 @@ static VkPipelineInputAssemblyStateCreateInfo createPipelineInputAssemblyStateCr
 	return pipelineInputAssemblyStateCreateInfo;
 }
 
-static VkRenderPass createRenderPass(const VkDevice& logicalDevice)
+static VkRenderPass createRenderPass(const VkDevice& logicalDevice, const VkFormat& format)
 {
-	VkAttachmentDescription attachmentDescription = createAttachmentDescription();
+	VkAttachmentDescription attachmentDescription = createAttachmentDescription(format);
 	VkAttachmentReference attachmentReference = createAttachmentReference();
 	VkSubpassDescription subpassDescription = createSubpassDescription(attachmentReference);
 
