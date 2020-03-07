@@ -56,7 +56,7 @@ static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkComponentMapping createComponentMapping();
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
-static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
+static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&, const float&);
 static VkFence createFence(const VkDevice&);
 static VkFramebuffer createFramebuffer(const VkDevice&, const VkImageView&, const VkRenderPass&, const VkExtent2D&);
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
@@ -299,10 +299,8 @@ static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance& inst
 	return callback;
 }
 
-static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queueFamilyIndex)
+static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queueFamilyIndex, const float& queuePriority)
 {
-	float queuePriority = 1.0f;
-
 	VkDeviceQueueCreateInfo queueCreateInfo = {};
 	queueCreateInfo.flags = 0;
 	queueCreateInfo.pNext = nullptr;
@@ -467,9 +465,10 @@ static VkImageView createImageView(const VkDevice& logicalDevice, const VkImage&
 
 static LogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface)
 {
+	const float queuePriority = 1.0f;
 	QueueFamilyIndexInfo queueInfo = getVulkanQueueInfo(physicalDevice, surface);
-	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.graphicsQueueFamilyIndex);
-	VkDeviceQueueCreateInfo presentQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.presentQueueFamilyIndex);
+	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.graphicsQueueFamilyIndex, queuePriority);
+	VkDeviceQueueCreateInfo presentQueueCreateInfo = createDeviceQueueCreateInfo(queueInfo.presentQueueFamilyIndex, queuePriority);
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = getDeviceCreateInfos(graphicsQueueCreateInfo, presentQueueCreateInfo);
 
 	VkDeviceCreateInfo info = {};
