@@ -62,12 +62,13 @@ static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice
 static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
 static VkInstance createInstance();
 static VkImageSubresourceRange createImageSubresourceRange();
-static VkImageView createImageView(const VkDevice& logicalDevice, const VkImage& image, const VkFormat& format);
+static VkImageView createImageView(const VkDevice&, const VkImage&, const VkFormat&);
 static LogicalDeviceInfo createLogicalDevice(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static VkPhysicalDevice createPhysicalDevice(const VkInstance&);
 static VkPipelineRasterizationStateCreateInfo createPipelineRasterizationStateCreateInfo();
 static VkPipelineInputAssemblyStateCreateInfo createPipelineInputAssemblyStateCreateInfo();
 static VkRenderPass createRenderPass(const VkDevice&, const VkFormat&);
+static VkSemaphore createSemaphore(const VkDevice&);
 static VkShaderModule createShaderModule(const VkDevice&, const std::string&);
 static VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(const VkDevice&, const VkShaderStageFlagBits&, const std::string&);
 static VkSubpassDescription createSubpassDescription(const VkAttachmentReference&);
@@ -77,7 +78,7 @@ static VkPipelineVertexInputStateCreateInfo createVertexInputStateCreateInfo();
 static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char*, void*);
 static std::vector<VkDeviceQueueCreateInfo> getDeviceCreateInfos(const VkDeviceQueueCreateInfo&, const VkDeviceQueueCreateInfo&);
 static std::vector<char> getShaderCode(const std::string&);
-static std::vector<VkImage> getSwapchainImages(const VkDevice& logicalDevice, const VkSwapchainKHR& swapchain);
+static std::vector<VkImage> getSwapchainImages(const VkDevice&, const VkSwapchainKHR&);
 static std::vector<const char*> getVulkanInstanceExtensions();
 static QueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static void handleError(VkResult, const std::string&);
@@ -127,10 +128,14 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 
 	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 	std::generate_n(std::back_inserter(m_commandBuffers), m_swapchainFramebuffers.size(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
+	std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
+	std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 }
 
 VulkanState::~VulkanState()
 {
+	for (const VkSemaphore& semaphore : m_imageRenderedSemaphores) vkDestroySemaphore(m_logicalDevice, semaphore, nullptr);
+	for (const VkSemaphore& semaphore : m_imageAvailableSemaphores) vkDestroySemaphore(m_logicalDevice, semaphore, nullptr);
 	for (const VkCommandBuffer& commandBuffer : m_commandBuffers) vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &commandBuffer);
 	vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
 	for (const VkFramebuffer& swapchainFramebuffer : m_swapchainFramebuffers) vkDestroyFramebuffer(m_logicalDevice, swapchainFramebuffer, nullptr);
@@ -493,6 +498,19 @@ static VkRenderPass createRenderPass(const VkDevice& logicalDevice, const VkForm
 	handleError(vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, nullptr, &renderPass), "Failed to create render pass.");
 
 	return renderPass;
+}
+
+static VkSemaphore createSemaphore(const VkDevice& logicalDevice)
+{
+	VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+	semaphoreCreateInfo.flags = 0;
+	semaphoreCreateInfo.pNext = nullptr;
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkSemaphore semaphore;
+	vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &semaphore);
+
+	return semaphore;
 }
 
 static VkShaderModule createShaderModule(const VkDevice& logicalDevice, const std::string& spirvPath)

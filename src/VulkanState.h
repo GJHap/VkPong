@@ -14,6 +14,8 @@ private:
 	VkPipeline m_graphicsPipeline;
 	VkPipelineLayout m_graphicsPipelineLayout;
 	VkQueue m_graphicsQueue;
+	std::vector<VkSemaphore> m_imageAvailableSemaphores;
+	std::vector<VkSemaphore> m_imageRenderedSemaphores;
 	VkInstance m_instance;
 	VkSwapchainKHR m_swapChain;
 	std::vector<VkFramebuffer> m_swapchainFramebuffers;
