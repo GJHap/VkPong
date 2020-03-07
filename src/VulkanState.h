@@ -11,6 +11,7 @@ private:
 	std::vector<VkCommandBuffer> m_commandBuffers;
 	VkCommandPool m_commandPool;
 	VkDebugReportCallbackEXT m_debugReportCallback;
+	std::vector<VkFence> m_fences;
 	VkPipeline m_graphicsPipeline;
 	VkPipelineLayout m_graphicsPipelineLayout;
 	VkQueue m_graphicsQueue;

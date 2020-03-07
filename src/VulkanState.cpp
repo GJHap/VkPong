@@ -57,6 +57,7 @@ static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkComponentMapping createComponentMapping();
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
 static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&);
+static VkFence createFence(const VkDevice&);
 static VkFramebuffer createFramebuffer(const VkDevice&, const VkImageView&, const VkRenderPass&, const VkExtent2D&);
 static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
 static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
@@ -130,10 +131,12 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 	std::generate_n(std::back_inserter(m_commandBuffers), m_swapchainFramebuffers.size(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
 	std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 	std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
+	std::generate_n(std::back_inserter(m_fences), m_swapchainFramebuffers.size(), [this]() { return createFence(m_logicalDevice); });
 }
 
 VulkanState::~VulkanState()
 {
+	for (const VkFence& fence : m_fences) vkDestroyFence(m_logicalDevice, fence, nullptr);
 	for (const VkSemaphore& semaphore : m_imageRenderedSemaphores) vkDestroySemaphore(m_logicalDevice, semaphore, nullptr);
 	for (const VkSemaphore& semaphore : m_imageAvailableSemaphores) vkDestroySemaphore(m_logicalDevice, semaphore, nullptr);
 	for (const VkCommandBuffer& commandBuffer : m_commandBuffers) vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &commandBuffer);
@@ -260,6 +263,19 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queue
 	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 
 	return queueCreateInfo;
+}
+
+static VkFence createFence(const VkDevice& logicalDevice)
+{
+	VkFenceCreateInfo fenceCreateInfo = {};
+	fenceCreateInfo.flags = 0;
+	fenceCreateInfo.pNext = nullptr;
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	VkFence fence;
+	vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence);
+
+	return fence;
 }
 
 static VkFramebuffer createFramebuffer(const VkDevice& logicalDevice, const VkImageView& imageView, const VkRenderPass& renderPass, const VkExtent2D& extent)
