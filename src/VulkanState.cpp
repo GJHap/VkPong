@@ -52,7 +52,7 @@ struct QueueFamilyIndexInfo
 static VkApplicationInfo createApplicationInfo();
 static VkAttachmentDescription createAttachmentDescription(const VkFormat&);
 static VkAttachmentReference createAttachmentReference();
-static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&);
+static VkCommandBuffer createCommandBuffer(const VkCommandPool&, const VkDevice&, const VkExtent2D&, const VkFramebuffer&, const VkPipeline&, const VkRenderPass&);
 static VkCommandPool createCommandPool(const VkDevice&, const uint32_t&);
 static VkComponentMapping createComponentMapping();
 static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
@@ -84,7 +84,7 @@ static std::vector<const char*> getVulkanInstanceExtensions();
 static QueueFamilyIndexInfo getVulkanQueueInfo(const VkPhysicalDevice&, const VkSurfaceKHR&);
 static void handleError(VkResult, const std::string&);
 static bool isSurfaceSupported(const VkPhysicalDevice&, const VkSurfaceKHR&, const uint32_t&);
-static void recordCommandBuffer(const VkCommandBuffer&);
+static void recordCommandBuffer(const VkCommandBuffer&, const VkExtent2D&, const VkFramebuffer&, const VkPipeline&, const VkRenderPass&);
 static void vulkanDestroyDebugReportCallbackEXT(const VkInstance&, VkDebugReportCallbackEXT, const VkAllocationCallbacks*);
 static VkResult vulkanCreateDebugReportCallbackEXT(const VkInstance&, const VkDebugReportCallbackCreateInfoEXT*, const VkAllocationCallbacks*, VkDebugReportCallbackEXT*);
 
@@ -128,7 +128,10 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 	});
 
 	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
-	std::generate_n(std::back_inserter(m_commandBuffers), m_swapchainFramebuffers.size(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
+	std::transform(m_swapchainFramebuffers.cbegin(), m_swapchainFramebuffers.cend(), std::back_inserter(m_commandBuffers), [this, surfaceCapabilities](const VkFramebuffer& framebuffer)
+	{
+		return createCommandBuffer(m_commandPool, m_logicalDevice, surfaceCapabilities.currentExtent, framebuffer, m_graphicsPipeline, m_renderPass);
+	});
 	std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 	std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 	std::generate_n(std::back_inserter(m_fences), m_swapchainFramebuffers.size(), [this]() { return createFence(m_logicalDevice); });
@@ -191,7 +194,7 @@ static VkAttachmentReference createAttachmentReference()
 	return attachmentReference;
 }
 
-static VkCommandBuffer createCommandBuffer(const VkCommandPool& commandPool, const VkDevice& logicalDevice)
+static VkCommandBuffer createCommandBuffer(const VkCommandPool& commandPool, const VkDevice& logicalDevice, const VkExtent2D& extent, const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const VkRenderPass& renderPass)
 {
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
 	commandBufferAllocateInfo.commandBufferCount = 1;
@@ -203,7 +206,7 @@ static VkCommandBuffer createCommandBuffer(const VkCommandPool& commandPool, con
 	VkCommandBuffer commandBuffer;
 	handleError(vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, &commandBuffer), "Failed to allocate command buffer.");
 
-	recordCommandBuffer(commandBuffer);
+	recordCommandBuffer(commandBuffer, extent, framebuffer, graphicsPipeline, renderPass);
 
 	return commandBuffer;
 }
@@ -741,7 +744,7 @@ static bool isSurfaceSupported(const VkPhysicalDevice& physicalDevice, const VkS
 	return surfaceSupported == VK_TRUE;
 }
 
-static void recordCommandBuffer(const VkCommandBuffer& commandBuffer)
+static void recordCommandBuffer(const VkCommandBuffer& commandBuffer, const VkExtent2D& extent, const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const VkRenderPass& renderPass)
 {
 	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
 	commandBufferBeginInfo.flags = 0;
@@ -749,7 +752,31 @@ static void recordCommandBuffer(const VkCommandBuffer& commandBuffer)
 	commandBufferBeginInfo.pNext = nullptr;
 	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
+	VkClearValue clearValue;
+	clearValue.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	VkRect2D renderArea;
+	renderArea.extent = extent;
+	renderArea.offset = { 0, 0 };
+
+	VkRenderPassBeginInfo renderPassBeginInfo = {};
+	renderPassBeginInfo.clearValueCount = 1;
+	renderPassBeginInfo.framebuffer = framebuffer;
+	renderPassBeginInfo.pClearValues = &clearValue;
+	renderPassBeginInfo.pNext = nullptr;
+	renderPassBeginInfo.renderArea = renderArea;
+	renderPassBeginInfo.renderPass = renderPass;
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
 	handleError(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo), "Failed to begin recording command buffer.");
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
 
 	handleError(vkEndCommandBuffer(commandBuffer), "Failed to finish recording command buffer.");
 }
