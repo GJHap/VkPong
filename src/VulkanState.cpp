@@ -59,7 +59,7 @@ static VkDebugReportCallbackEXT createDebugReportCallback(const VkInstance&);
 static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t&, const float&);
 static VkFence createFence(const VkDevice&);
 static VkFramebuffer createFramebuffer(const VkDevice&, const VkImageView&, const VkRenderPass&, const VkExtent2D&);
-static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&);
+static VkPipeline createGraphicsPipeline(const VkPipelineLayout&, const VkDevice&, const VkRenderPass&, const VkExtent2D&);
 static VkPipelineLayout createGraphicsPipelineLayout(const VkDevice&);
 static VkInstance createInstance();
 static VkImageSubresourceRange createImageSubresourceRange();
@@ -115,7 +115,7 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 
 	m_renderPass = createRenderPass(m_logicalDevice, surfaceFormat.format);
 	m_graphicsPipelineLayout = createGraphicsPipelineLayout(m_logicalDevice);
-	m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass);
+	m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass, surfaceCapabilities.currentExtent);
 	m_swapChain = createSwapchain(m_logicalDevice, m_physicalDevice, m_surface, surfaceFormat, surfaceCapabilities);
 	m_swapchainImages = getSwapchainImages(m_logicalDevice, m_swapChain);
 	std::transform(m_swapchainImages.cbegin(), m_swapchainImages.cend(), std::back_inserter(m_swapchainImageViews), [this, surfaceFormat](VkImage swapchainImage)
@@ -344,7 +344,7 @@ static VkFramebuffer createFramebuffer(const VkDevice& logicalDevice, const VkIm
 	return framebuffer;
 }
 
-static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelineLayout, const VkDevice& logicalDevice, const VkRenderPass& renderPass)
+static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelineLayout, const VkDevice& logicalDevice, const VkRenderPass& renderPass, const VkExtent2D& extent)
 {
 	VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo = createPipelineInputAssemblyStateCreateInfo();
 	VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo = createPipelineRasterizationStateCreateInfo();
@@ -355,22 +355,75 @@ static VkPipeline createGraphicsPipeline(const VkPipelineLayout& graphicsPipelin
 		createShaderStageCreateInfo(logicalDevice, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT, "./shaders/fragment/shader.spv")
 	};
 
+	VkPipelineMultisampleStateCreateInfo multisampling = {};
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.sampleShadingEnable = VK_FALSE;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampling.minSampleShading = 1.0f;
+	multisampling.pSampleMask = nullptr;
+	multisampling.alphaToCoverageEnable = VK_FALSE;
+	multisampling.alphaToOneEnable = VK_FALSE;
+
+	VkRect2D scissors = {};
+	scissors.extent = extent;
+	scissors.offset = { 0, 0 };
+	VkViewport viewport;
+	viewport.height = extent.height;
+	viewport.maxDepth = 1.0f;
+	viewport.minDepth = 0.0f;
+	viewport.width = extent.width;
+	viewport.x = 0;
+	viewport.y = 0;
+	VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo = {};
+	pipelineViewportStateCreateInfo.flags = 0;
+	pipelineViewportStateCreateInfo.pNext = nullptr;
+	pipelineViewportStateCreateInfo.pScissors = &scissors;
+	pipelineViewportStateCreateInfo.pViewports = &viewport;
+	pipelineViewportStateCreateInfo.scissorCount = 1;
+	pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	pipelineViewportStateCreateInfo.viewportCount = 1;
+
+	VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentState = {};
+	pipelineColorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
+		| VK_COLOR_COMPONENT_G_BIT
+		| VK_COLOR_COMPONENT_B_BIT
+		| VK_COLOR_COMPONENT_A_BIT;
+	pipelineColorBlendAttachmentState.blendEnable = VK_TRUE;
+	pipelineColorBlendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	pipelineColorBlendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	pipelineColorBlendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+	pipelineColorBlendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	pipelineColorBlendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	pipelineColorBlendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+	VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo = {};
+	pipelineColorBlendStateCreateInfo.attachmentCount = 1;
+	pipelineColorBlendStateCreateInfo.blendConstants[0] = 0.0f;
+	pipelineColorBlendStateCreateInfo.blendConstants[1] = 0.0f;
+	pipelineColorBlendStateCreateInfo.blendConstants[2] = 0.0f;
+	pipelineColorBlendStateCreateInfo.blendConstants[3] = 0.0f;
+	pipelineColorBlendStateCreateInfo.flags = 0;
+	pipelineColorBlendStateCreateInfo.logicOp = VkLogicOp::VK_LOGIC_OP_COPY;
+	pipelineColorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
+	pipelineColorBlendStateCreateInfo.pAttachments = &pipelineColorBlendAttachmentState;
+	pipelineColorBlendStateCreateInfo.pNext = nullptr;
+	pipelineColorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+
 	VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 	graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 	graphicsPipelineCreateInfo.basePipelineIndex = 0;
 	graphicsPipelineCreateInfo.flags = 0;
 	graphicsPipelineCreateInfo.layout = graphicsPipelineLayout;
-	graphicsPipelineCreateInfo.pColorBlendState = nullptr;
+	graphicsPipelineCreateInfo.pColorBlendState = &pipelineColorBlendStateCreateInfo;
 	graphicsPipelineCreateInfo.pDepthStencilState = nullptr;
 	graphicsPipelineCreateInfo.pDynamicState = nullptr;
 	graphicsPipelineCreateInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
-	graphicsPipelineCreateInfo.pMultisampleState = nullptr;
+	graphicsPipelineCreateInfo.pMultisampleState = &multisampling;
 	graphicsPipelineCreateInfo.pNext = nullptr;
 	graphicsPipelineCreateInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;
 	graphicsPipelineCreateInfo.pStages = shaderCreateInfos.data();
 	graphicsPipelineCreateInfo.pTessellationState = nullptr;
 	graphicsPipelineCreateInfo.pVertexInputState = &pipelineVertexInputStateCreateInfo;
-	graphicsPipelineCreateInfo.pViewportState = nullptr;
+	graphicsPipelineCreateInfo.pViewportState = &pipelineViewportStateCreateInfo;
 	graphicsPipelineCreateInfo.renderPass = renderPass;
 	graphicsPipelineCreateInfo.stageCount = shaderCreateInfos.size();
 	graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -519,11 +572,11 @@ static VkPipelineRasterizationStateCreateInfo createPipelineRasterizationStateCr
 	rasterizationCreateInfo.depthBiasSlopeFactor = 0.0f;
 	rasterizationCreateInfo.depthClampEnable = VK_FALSE;
 	rasterizationCreateInfo.flags = 0;
-	rasterizationCreateInfo.frontFace = VkFrontFace::VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizationCreateInfo.frontFace = VkFrontFace::VK_FRONT_FACE_CLOCKWISE;
 	rasterizationCreateInfo.lineWidth = 1.0f;
 	rasterizationCreateInfo.pNext = nullptr;
 	rasterizationCreateInfo.polygonMode = VkPolygonMode::VK_POLYGON_MODE_FILL;
-	rasterizationCreateInfo.rasterizerDiscardEnable = VK_TRUE;
+	rasterizationCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 	rasterizationCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 
 	return rasterizationCreateInfo;
@@ -536,7 +589,7 @@ static VkPipelineInputAssemblyStateCreateInfo createPipelineInputAssemblyStateCr
 	pipelineInputAssemblyStateCreateInfo.pNext = nullptr;
 	pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
 	pipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	pipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+	pipelineInputAssemblyStateCreateInfo.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
 	return pipelineInputAssemblyStateCreateInfo;
 }
