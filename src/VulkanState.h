@@ -31,4 +31,13 @@ private:
 public:
 	VulkanState(GLFWwindow*);
 	~VulkanState();
+	VkCommandBuffer commandBuffer(const uint32_t& idx) const;
+	VkFence fence(const uint32_t& idx) const;
+	VkQueue graphicsQueue() const;
+	VkSemaphore imageAvailableSemaphore(const uint32_t& idx) const;
+	VkSemaphore imageRenderedSemaphore(const uint32_t& idx) const;
+	VkDevice logicalDevice() const;
+	VkQueue presentQueue() const;
+	VkSwapchainKHR swapchain() const;
+	uint32_t swapchainImageCount() const;
 };

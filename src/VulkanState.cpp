@@ -139,6 +139,7 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 
 VulkanState::~VulkanState()
 {
+	vkDeviceWaitIdle(m_logicalDevice);
 	for (const VkFence& fence : m_fences) vkDestroyFence(m_logicalDevice, fence, nullptr);
 	for (const VkSemaphore& semaphore : m_imageRenderedSemaphores) vkDestroySemaphore(m_logicalDevice, semaphore, nullptr);
 	for (const VkSemaphore& semaphore : m_imageAvailableSemaphores) vkDestroySemaphore(m_logicalDevice, semaphore, nullptr);
@@ -154,6 +155,51 @@ VulkanState::~VulkanState()
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vulkanDestroyDebugReportCallbackEXT(m_instance, m_debugReportCallback, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
+}
+
+VkCommandBuffer VulkanState::commandBuffer(const uint32_t& idx) const
+{
+	return m_commandBuffers[idx];
+}
+
+VkFence VulkanState::fence(const uint32_t& idx) const
+{
+	return m_fences[idx];
+}
+
+VkQueue VulkanState::graphicsQueue() const
+{
+	return m_graphicsQueue;
+}
+
+VkSemaphore VulkanState::imageAvailableSemaphore(const uint32_t& idx) const
+{
+	return m_imageAvailableSemaphores[idx];
+}
+
+VkSemaphore VulkanState::imageRenderedSemaphore(const uint32_t& idx) const
+{
+	return m_imageRenderedSemaphores[idx];
+}
+
+VkDevice VulkanState::logicalDevice() const
+{
+	return m_logicalDevice;
+}
+
+VkQueue VulkanState::presentQueue() const
+{
+	return m_presentQueue;
+}
+
+VkSwapchainKHR VulkanState::swapchain() const
+{
+	return m_swapChain;
+}
+
+uint32_t VulkanState::swapchainImageCount() const
+{
+	return m_swapchainImages.size();
 }
 
 static VkApplicationInfo createApplicationInfo()
@@ -173,13 +219,13 @@ static VkAttachmentDescription createAttachmentDescription(const VkFormat& forma
 {
 	VkAttachmentDescription attachmentDescription;
 	attachmentDescription.finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	attachmentDescription.flags = VkAttachmentDescriptionFlagBits::VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
+	attachmentDescription.flags = 0;
 	attachmentDescription.format = format;
 	attachmentDescription.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
 	attachmentDescription.loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachmentDescription.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-	attachmentDescription.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_LOAD;
-	attachmentDescription.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDescription.stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachmentDescription.stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachmentDescription.storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
 
 	return attachmentDescription;
@@ -271,7 +317,7 @@ static VkDeviceQueueCreateInfo createDeviceQueueCreateInfo(const uint32_t& queue
 static VkFence createFence(const VkDevice& logicalDevice)
 {
 	VkFenceCreateInfo fenceCreateInfo = {};
-	fenceCreateInfo.flags = 0;
+	fenceCreateInfo.flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
 	fenceCreateInfo.pNext = nullptr;
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
