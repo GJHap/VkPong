@@ -126,12 +126,12 @@ VulkanState::VulkanState(GLFWwindow* glfwWindow)
 	});
 
 	m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
-	m_commandBuffer = createCommandBuffer(m_commandPool, m_logicalDevice);
+	std::generate_n(std::back_inserter(m_commandBuffers), m_swapchainFramebuffers.size(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
 }
 
 VulkanState::~VulkanState()
 {
-	vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &m_commandBuffer);
+	for (const VkCommandBuffer& commandBuffer : m_commandBuffers) vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &commandBuffer);
 	vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
 	for (const VkFramebuffer& swapchainFramebuffer : m_swapchainFramebuffers) vkDestroyFramebuffer(m_logicalDevice, swapchainFramebuffer, nullptr);
 	for (const VkImageView& swapchainImageView : m_swapchainImageViews) vkDestroyImageView(m_logicalDevice, swapchainImageView, nullptr);

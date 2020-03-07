@@ -8,7 +8,7 @@
 class VulkanState
 {
 private:
-	VkCommandBuffer m_commandBuffer;
+	std::vector<VkCommandBuffer> m_commandBuffers;
 	VkCommandPool m_commandPool;
 	VkDebugReportCallbackEXT m_debugReportCallback;
 	VkPipeline m_graphicsPipeline;
