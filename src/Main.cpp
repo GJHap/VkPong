@@ -1,55 +1,46 @@
+#include "VulkanState.hpp"
+
 #include <exception>
 #include <iostream>
-
-#include <GLFW/glfw3.h>
-#include <vulkan\vulkan.h>
-
-#include "VulkanState.h"
 
 void draw(const VulkanState& vulkanState)
 {
 	static uint32_t idx = 0;
-	VkSemaphore imageAvailableSemaphore = vulkanState.imageAvailableSemaphore(idx);
-	VkSemaphore imageRenderedSemaphore = vulkanState.imageRenderedSemaphore(idx);
-	VkFence fence = vulkanState.fence(idx);
-	VkCommandBuffer commandBuffer = vulkanState.commandBuffer(idx);
-	VkDevice logicalDevice = vulkanState.logicalDevice();
-	VkSwapchainKHR swapchain = vulkanState.swapchain();
-	VkQueue graphicsQueue = vulkanState.graphicsQueue();
-	VkQueue presentQueue = vulkanState.presentQueue();
+	vk::Semaphore imageAvailableSemaphore = vulkanState.imageAvailableSemaphore(idx);
+	vk::Semaphore imageRenderedSemaphore = vulkanState.imageRenderedSemaphore(idx);
+	vk::Fence fence = vulkanState.fence(idx);
+	vk::CommandBuffer commandBuffer = vulkanState.commandBuffer(idx);
+	vk::Device logicalDevice = vulkanState.logicalDevice();
+	vk::SwapchainKHR swapchain = vulkanState.swapchain();
+	vk::Queue graphicsQueue = vulkanState.graphicsQueue();
+	vk::Queue presentQueue = vulkanState.presentQueue();
 
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(logicalDevice, swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	uint32_t imageIndex = logicalDevice.acquireNextImageKHR(swapchain, UINT64_MAX, imageAvailableSemaphore, vk::Fence()).value;
 
-	vkWaitForFences(logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX);
-	vkResetFences(logicalDevice, 1, &fence);
+	logicalDevice.waitForFences(vk::ArrayProxy<const vk::Fence>(fence), 1, UINT64_MAX);
+	logicalDevice.resetFences(vk::ArrayProxy<const vk::Fence>(fence));
 
-	VkPipelineStageFlags waitDstStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
-	VkSubmitInfo submitInfo = {};
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-	submitInfo.pNext = nullptr;
-	submitInfo.pSignalSemaphores = &imageRenderedSemaphore;
-	submitInfo.pWaitDstStageMask = &waitDstStageMask;
-	submitInfo.pWaitSemaphores = &imageAvailableSemaphore;
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.waitSemaphoreCount = 1;
+	vk::SubmitInfo submitInfo;
+	submitInfo.setCommandBufferCount(1);
+	submitInfo.setPCommandBuffers(&commandBuffer);
+	submitInfo.setSignalSemaphoreCount(1);
+	submitInfo.setPSignalSemaphores(&imageRenderedSemaphore);
+	submitInfo.setWaitSemaphoreCount(1);
+	submitInfo.setPWaitSemaphores(&imageAvailableSemaphore);
+	submitInfo.setPWaitDstStageMask(&waitDstStageMask);
 
-	vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence);
+	graphicsQueue.submit(vk::ArrayProxy<const vk::SubmitInfo>(submitInfo), fence);
 
-	VkPresentInfoKHR presentInfo = {};
-	presentInfo.pImageIndices = &imageIndex;
-	presentInfo.pNext = nullptr;
-	presentInfo.pResults = nullptr;
-	presentInfo.pSwapchains = &swapchain;
-	presentInfo.pWaitSemaphores = &imageRenderedSemaphore;
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	presentInfo.swapchainCount = 1;
-	presentInfo.waitSemaphoreCount = 1;
+	vk::PresentInfoKHR presentInfo;
+	presentInfo.setPImageIndices(&imageIndex);
+	presentInfo.setSwapchainCount(1);
+	presentInfo.setPSwapchains(&swapchain);
+	presentInfo.setPWaitSemaphores(&imageRenderedSemaphore);
+	presentInfo.setWaitSemaphoreCount(1);
 
-	vkQueuePresentKHR(presentQueue, &presentInfo);
+	presentQueue.presentKHR(presentInfo);
 
 	idx = (idx + 1) % vulkanState.swapchainImageCount();
 }

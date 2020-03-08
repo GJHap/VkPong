@@ -16,8 +16,12 @@ set(SOURCE_LIST
     "README.md"
     "LICENSE"
     "src/Main.cpp"
-    "src/VulkanState.h"
+    "src/VulkanState.hpp"
     "src/VulkanState.cpp"
+    "src/VulkanObjectCreation.hpp"
+    "src/VulkanObjectCreation.cpp"
+    "src/VulkanExtensions.hpp"
+    "src/VulkanExtensions.cpp"
     "shaders/fragment/shader.frag"
     "shaders/vertex/shader.vert"
     )
