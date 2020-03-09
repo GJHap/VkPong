@@ -1,9 +1,8 @@
 #include "VulkanState.hpp"
 
-#include <exception>
 #include <iostream>
 
-void draw(const VulkanState& vulkanState)
+void draw(const vkPong::VulkanState& vulkanState)
 {
 	static uint32_t idx = 0;
 	vk::Semaphore imageAvailableSemaphore = vulkanState.imageAvailableSemaphore(idx);
@@ -57,7 +56,7 @@ int main(void)
 		{
 			try
 			{
-				VulkanState vulkanState(window);
+				vkPong::VulkanState vulkanState(window);
 
 				while (!glfwWindowShouldClose(window))
 				{
@@ -65,7 +64,7 @@ int main(void)
 					draw(vulkanState);
 				}
 			}
-			catch (std::exception e)
+			catch (std::exception & e)
 			{
 				std::cout << e.what() << std::endl;
 			}

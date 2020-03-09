@@ -22,6 +22,7 @@ set(SOURCE_LIST
     "src/VulkanObjectCreation.cpp"
     "src/VulkanExtensions.hpp"
     "src/VulkanExtensions.cpp"
+    "src/vulkanhpp_include.hpp"
     "shaders/fragment/shader.frag"
     "shaders/vertex/shader.vert"
     )
