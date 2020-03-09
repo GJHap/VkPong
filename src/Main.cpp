@@ -50,7 +50,7 @@ int main(void)
 	{
 		GLFWwindow* window;
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+		window = glfwCreateWindow(640, 480, "VkPong", NULL, NULL);
 
 		if (window != nullptr)
 		{
