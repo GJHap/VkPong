@@ -98,16 +98,16 @@ namespace vkPong
 		std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
 
 		QueueFamilyIndexInfo queueInfo = {};
-		for (std::vector<vk::QueueFamilyProperties>::size_type i = 0; i < queueFamilyProperties.size(); ++i)
+		for (decltype(queueFamilyProperties.size()) i = 0; i < queueFamilyProperties.size(); ++i)
 		{
 			if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) == vk::QueueFlagBits::eGraphics)
 			{
-				queueInfo.graphicsQueueFamilyIndex = i;
+				queueInfo.graphicsQueueFamilyIndex = static_cast<uint32_t>(i);
 			}
 
-			if (physicalDevice.getSurfaceSupportKHR(i, surface))
+			if (physicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface))
 			{
-				queueInfo.presentQueueFamilyIndex = i;
+				queueInfo.presentQueueFamilyIndex = static_cast<uint32_t>(i);
 			}
 		}
 
@@ -139,7 +139,7 @@ namespace vkPong
 		commandBuffer.end();
 	}
 
-	static VkBool32 debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData)
+	static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char* pMessage, void*)
 	{
 		std::cerr << pMessage << "\n\n";
 		return VK_FALSE;
@@ -237,8 +237,8 @@ namespace vkPong
 		scissor.setExtent(extent);
 
 		vk::Viewport viewport;
-		viewport.setWidth(extent.width);
-		viewport.setHeight(extent.height);
+		viewport.setWidth(static_cast<float>(extent.width));
+		viewport.setHeight(static_cast<float>(extent.height));
 		viewport.setMaxDepth(1.0f);
 
 		vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo;
@@ -265,7 +265,7 @@ namespace vkPong
 		graphicsPipelineCreateInfo.setPMultisampleState(&pipelineMultisampleStateCreateInfo);
 		graphicsPipelineCreateInfo.setPRasterizationState(&pipelineRasterizationStateCreateInfo);
 		graphicsPipelineCreateInfo.setPStages(shaderCreateInfos.data());
-		graphicsPipelineCreateInfo.setStageCount(shaderCreateInfos.size());
+		graphicsPipelineCreateInfo.setStageCount(static_cast<uint32_t>(shaderCreateInfos.size()));
 		graphicsPipelineCreateInfo.setPVertexInputState(&pipelineVertexInputStateCreateInfo);
 		graphicsPipelineCreateInfo.setPViewportState(&pipelineViewportStateCreateInfo);
 		graphicsPipelineCreateInfo.setRenderPass(renderPass);
@@ -319,9 +319,9 @@ namespace vkPong
 
 		vk::InstanceCreateInfo instanceCreateInfo;
 		instanceCreateInfo.setPApplicationInfo(&applicationInfo);
-		instanceCreateInfo.setEnabledLayerCount(enabledLayers.size());
+		instanceCreateInfo.setEnabledLayerCount(static_cast<uint32_t>(enabledLayers.size()));
 		instanceCreateInfo.setPpEnabledLayerNames(enabledLayers.data());
-		instanceCreateInfo.setEnabledExtensionCount(instanceExtensions.size());
+		instanceCreateInfo.setEnabledExtensionCount(static_cast<uint32_t>(instanceExtensions.size()));
 		instanceCreateInfo.setPpEnabledExtensionNames(instanceExtensions.data());
 
 		return vk::createInstance(instanceCreateInfo);
@@ -336,7 +336,7 @@ namespace vkPong
 		vk::DeviceCreateInfo deviceCreateInfo;
 		deviceCreateInfo.setQueueCreateInfoCount(1);
 		deviceCreateInfo.setPQueueCreateInfos(deviceQueueCreateInfos.data());
-		deviceCreateInfo.setEnabledExtensionCount(DEVICE_EXTENSIONS.size());
+		deviceCreateInfo.setEnabledExtensionCount(static_cast<uint32_t>(DEVICE_EXTENSIONS.size()));
 		deviceCreateInfo.setPpEnabledExtensionNames(DEVICE_EXTENSIONS.data());
 
 		vk::Device logicalDevice = physicalDevice.createDevice(deviceCreateInfo);

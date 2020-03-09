@@ -4,6 +4,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 project(Pong VERSION 1.0)
 
+
+
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -28,6 +30,12 @@ set(SOURCE_LIST
     )
 
 add_executable(${PROJECT_NAME} ${SOURCE_LIST})
+
+if(MSVC)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
+endif()
 
 add_custom_command(TARGET ${PROJECT_NAME}
                    PRE_BUILD

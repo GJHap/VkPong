@@ -106,6 +106,6 @@ namespace vkPong
 
 	uint32_t VulkanState::swapchainImageCount() const
 	{
-		return m_swapchainImages.size();
+		return static_cast<uint32_t>(m_swapchainImages.size());
 	}
 }
