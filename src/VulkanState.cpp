@@ -1,6 +1,6 @@
 #include "VulkanState.hpp"
 #include "VulkanExtensions.hpp"
-#include "VulkanObjectCreation.hpp"
+#include "VulkanObjectCreation/VulkanObjectCreation.hpp"
 
 namespace vkPong
 {
