@@ -1,6 +1,8 @@
 #pragma once
 
 #include "vulkanhpp_include.hpp"
+#include "BufferInfo.hpp"
+
 #include <GLFW\glfw3.h>
 
 namespace vkPong
@@ -8,6 +10,7 @@ namespace vkPong
 	class VulkanState
 	{
 	private:
+		BufferInfo m_bufferInfo;
 		std::vector<vk::CommandBuffer> m_commandBuffers;
 		vk::CommandPool m_commandPool;
 		vk::DebugReportCallbackEXT m_debugReportCallback;
@@ -29,7 +32,7 @@ namespace vkPong
 		vk::SurfaceKHR m_surface;
 
 	public:
-		VulkanState(GLFWwindow*);
+		explicit VulkanState(GLFWwindow*);
 		~VulkanState();
 		vk::CommandBuffer commandBuffer(const uint32_t&) const;
 		vk::Fence fence(const uint32_t&) const;

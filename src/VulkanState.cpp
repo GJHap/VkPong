@@ -16,6 +16,8 @@ namespace vkPong
 		m_graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
 		m_presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
 
+		m_bufferInfo = createBuffer(m_logicalDevice, m_physicalDevice);
+
 		std::vector<vk::SurfaceFormatKHR> surfaceFormats = m_physicalDevice.getSurfaceFormatsKHR(m_surface);
 		vk::SurfaceFormatKHR surfaceFormat = surfaceFormats[0];
 		vk::SurfaceCapabilitiesKHR surfaceCapabilities = m_physicalDevice.getSurfaceCapabilitiesKHR(m_surface);
@@ -37,7 +39,7 @@ namespace vkPong
 		m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 		std::transform(m_swapchainFramebuffers.cbegin(), m_swapchainFramebuffers.cend(), std::back_inserter(m_commandBuffers), [this, surfaceCapabilities](const VkFramebuffer& framebuffer)
 		{
-			return createCommandBuffer(m_commandPool, m_logicalDevice, surfaceCapabilities.currentExtent, framebuffer, m_graphicsPipeline, m_renderPass);
+			return createCommandBuffer(m_commandPool, m_logicalDevice, surfaceCapabilities.currentExtent, framebuffer, m_graphicsPipeline, m_renderPass, m_bufferInfo.buffer);
 		});
 		std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
@@ -58,6 +60,8 @@ namespace vkPong
 		m_logicalDevice.destroyPipeline(m_graphicsPipeline);
 		m_logicalDevice.destroyPipelineLayout(m_graphicsPipelineLayout);
 		m_logicalDevice.destroyRenderPass(m_renderPass);
+		m_logicalDevice.freeMemory(m_bufferInfo.bufferMemory);
+		m_logicalDevice.destroyBuffer(m_bufferInfo.buffer);
 		m_logicalDevice.destroy();
 		m_instance.destroySurfaceKHR(m_surface);
 		m_instance.destroyDebugReportCallbackEXT(m_debugReportCallback, nullptr, getVkDestroyDebugReportCallbackEXTDispatchLoader(m_instance));

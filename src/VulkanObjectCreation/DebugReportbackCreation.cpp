@@ -5,12 +5,6 @@
 
 namespace vkPong
 {
-#ifdef NDEBUG
-	const bool enableValidation = false;
-#else
-	const bool enableValidation = true;
-#endif
-
 	static VkBool32 debugCallback(VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, uint64_t, size_t, int32_t, const char*, const char* pMessage, void*)
 	{
 		std::cerr << pMessage << "\n\n";
@@ -21,7 +15,7 @@ namespace vkPong
 	{
 		vk::DebugReportCallbackEXT debugReportCallback;
 
-		if (enableValidation)
+#ifndef NDEBUG
 		{
 			vk::DebugReportCallbackCreateInfoEXT debugReportCallbackCreateInfo;
 			debugReportCallbackCreateInfo.setFlags(vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::ePerformanceWarning | vk::DebugReportFlagBitsEXT::eDebug);
@@ -29,6 +23,7 @@ namespace vkPong
 
 			debugReportCallback = instance.createDebugReportCallbackEXT(debugReportCallbackCreateInfo, nullptr, getVkCreateDebugReportCallbackEXTDispatchLoader(instance));
 		}
+#endif
 
 		return debugReportCallback;
 	}

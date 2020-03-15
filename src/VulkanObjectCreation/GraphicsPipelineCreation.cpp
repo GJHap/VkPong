@@ -1,4 +1,5 @@
 #include "GraphicsPipelineCreation.hpp"
+#include "../VertexData.hpp"
 
 #include <fstream>
 
@@ -47,7 +48,29 @@ namespace vkPong
 		pipelineRasterizationStateCreateInfo.setPolygonMode(vk::PolygonMode::eFill);
 		pipelineRasterizationStateCreateInfo.setLineWidth(1.0f);
 
+		vk::VertexInputBindingDescription vertexInputBindingDescription;
+		vertexInputBindingDescription.setBinding(0);
+		vertexInputBindingDescription.setStride(sizeof(VertexData));
+
+		vk::VertexInputAttributeDescription vertexInputAttributeDescription1;
+		vertexInputAttributeDescription1.setBinding(vertexInputBindingDescription.binding);
+		vertexInputAttributeDescription1.setFormat(vk::Format::eR32G32B32Sfloat);
+		vertexInputAttributeDescription1.setLocation(0);
+		vertexInputAttributeDescription1.setOffset(0);
+
+		vk::VertexInputAttributeDescription vertexInputAttributeDescription2;
+		vertexInputAttributeDescription2.setBinding(vertexInputBindingDescription.binding);
+		vertexInputAttributeDescription2.setFormat(vk::Format::eR32G32B32Sfloat);
+		vertexInputAttributeDescription2.setLocation(1);
+		vertexInputAttributeDescription2.setOffset(sizeof(float) * 2);
+
+		std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions{ vertexInputAttributeDescription1, vertexInputAttributeDescription2 };
+
 		vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;
+		pipelineVertexInputStateCreateInfo.setVertexBindingDescriptionCount(1);
+		pipelineVertexInputStateCreateInfo.setPVertexBindingDescriptions(&vertexInputBindingDescription);
+		pipelineVertexInputStateCreateInfo.setVertexAttributeDescriptionCount(static_cast<uint32_t>(vertexInputAttributeDescriptions.size()));
+		pipelineVertexInputStateCreateInfo.setPVertexAttributeDescriptions(vertexInputAttributeDescriptions.data());
 
 		std::vector<vk::PipelineShaderStageCreateInfo> shaderCreateInfos
 		{

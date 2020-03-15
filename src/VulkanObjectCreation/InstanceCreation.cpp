@@ -4,12 +4,6 @@
 
 namespace vkPong
 {
-#ifdef NDEBUG
-	const bool enableValidation = false;
-#else
-	const bool enableValidation = true;
-#endif
-
 	const static std::vector<const char*> INSTANCE_EXTENSIONS
 	{
 		"VK_EXT_debug_report"
@@ -36,11 +30,10 @@ namespace vkPong
 		std::vector<const char*> instanceExtensions = getVulkanInstanceExtensions();
 		std::vector<const char*> enabledLayers;
 
-		if (enableValidation)
-		{
-			enabledLayers = INSTANCE_VALIDATION_LAYERS;
-			std::copy(INSTANCE_EXTENSIONS.begin(), INSTANCE_EXTENSIONS.end(), std::back_inserter(instanceExtensions));
-		}
+#ifndef NDEBUG
+		enabledLayers = INSTANCE_VALIDATION_LAYERS;
+		std::copy(INSTANCE_EXTENSIONS.begin(), INSTANCE_EXTENSIONS.end(), std::back_inserter(instanceExtensions));
+#endif
 
 		vk::ApplicationInfo applicationInfo;
 		applicationInfo.setPApplicationName("VkPong");
