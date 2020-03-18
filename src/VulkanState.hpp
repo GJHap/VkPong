@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vulkanhpp_include.hpp"
-#include "BufferInfo.hpp"
+#include "Structs/BufferInfo.hpp"
 
 #include <GLFW\glfw3.h>
 

@@ -1,5 +1,5 @@
 #include "GraphicsPipelineCreation.hpp"
-#include "../VertexData.hpp"
+#include "../Structs/VertexData.hpp"
 
 #include <fstream>
 
@@ -56,13 +56,13 @@ namespace vkPong
 		vertexInputAttributeDescription1.setBinding(vertexInputBindingDescription.binding);
 		vertexInputAttributeDescription1.setFormat(vk::Format::eR32G32B32Sfloat);
 		vertexInputAttributeDescription1.setLocation(0);
-		vertexInputAttributeDescription1.setOffset(0);
+		vertexInputAttributeDescription1.setOffset(VertexData::positionOffset());
 
 		vk::VertexInputAttributeDescription vertexInputAttributeDescription2;
 		vertexInputAttributeDescription2.setBinding(vertexInputBindingDescription.binding);
 		vertexInputAttributeDescription2.setFormat(vk::Format::eR32G32B32Sfloat);
 		vertexInputAttributeDescription2.setLocation(1);
-		vertexInputAttributeDescription2.setOffset(sizeof(float) * 2);
+		vertexInputAttributeDescription2.setOffset(VertexData::colorOffset());
 
 		std::vector<vk::VertexInputAttributeDescription> vertexInputAttributeDescriptions{ vertexInputAttributeDescription1, vertexInputAttributeDescription2 };
 

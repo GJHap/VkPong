@@ -1,15 +1,8 @@
 #include "BufferCreation.hpp"
-#include "../VertexData.hpp"
+#include "../Structs/VertexData.hpp"
 
 namespace vkPong
 {
-	const std::vector<VertexData> vertexData
-	{
-		{ { 0.0, -0.5 }, { 1.0, 0.0, 0.0 } },
-		{ { 0.5, 0.5 }, { 0.0, 1.0, 0.0 } },
-		{ { -0.5, 0.5 },  { 0.0, 0.0, 1.0 } }
-	};
-
 	static int32_t findMemoryTypeIndex(const uint32_t& memoryTypeBits, const vk::PhysicalDeviceMemoryProperties& physicalDeviceMemoryProperties, const vk::MemoryPropertyFlags& memoryPropertyFlags)
 	{
 		int32_t result = -1;
@@ -25,7 +18,7 @@ namespace vkPong
 		return result;
 	}
 
-	static void mapData(const vk::Device& logicalDevice, const vk::DeviceMemory& deviceMemory, const vk::Buffer& buffer)
+	static void mapData(const vk::Device& logicalDevice, const vk::DeviceMemory& deviceMemory, const vk::Buffer& buffer, const std::vector<VertexData>& vertexData)
 	{
 		logicalDevice.bindBufferMemory(buffer, deviceMemory, 0);
 		void* data = logicalDevice.mapMemory(deviceMemory, 0, sizeof(vertexData[0]) * vertexData.size());
@@ -45,7 +38,7 @@ namespace vkPong
 		return logicalDevice.allocateMemory(memoryAllocateInfo);
 	}
 
-	BufferInfo createBuffer(const vk::Device& logicalDevice, const vk::PhysicalDevice& physicalDevice)
+	BufferInfo createBuffer(const vk::Device& logicalDevice, const vk::PhysicalDevice& physicalDevice, const std::vector<VertexData>& vertexData)
 	{
 		vk::BufferCreateInfo bufferCreateInfo;
 		bufferCreateInfo.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
@@ -53,7 +46,7 @@ namespace vkPong
 
 		vk::Buffer buffer = logicalDevice.createBuffer(bufferCreateInfo);
 		vk::DeviceMemory deviceMemory = allocateBuffer(logicalDevice, physicalDevice, buffer);
-		mapData(logicalDevice, deviceMemory, buffer);
+		mapData(logicalDevice, deviceMemory, buffer, vertexData);
 
 		BufferInfo bufferInfo;
 		bufferInfo.buffer = buffer;

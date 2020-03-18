@@ -1,6 +1,7 @@
 #include "VulkanState.hpp"
 #include "VulkanExtensions.hpp"
 #include "VulkanObjectCreation/VulkanObjectCreation.hpp"
+#include "GameObjects/Paddle.hpp"
 
 namespace vkPong
 {
@@ -16,7 +17,7 @@ namespace vkPong
 		m_graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
 		m_presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
 
-		m_bufferInfo = createBuffer(m_logicalDevice, m_physicalDevice);
+		m_bufferInfo = createBuffer(m_logicalDevice, m_physicalDevice, Paddle().vertexData());
 
 		std::vector<vk::SurfaceFormatKHR> surfaceFormats = m_physicalDevice.getSurfaceFormatsKHR(m_surface);
 		vk::SurfaceFormatKHR surfaceFormat = surfaceFormats[0];
