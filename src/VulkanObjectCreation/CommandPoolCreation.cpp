@@ -6,6 +6,7 @@ namespace vkPong
 	{
 		vk::CommandPoolCreateInfo commandPoolCreateInfo;
 		commandPoolCreateInfo.setQueueFamilyIndex(queueFamilyIndex);
+		commandPoolCreateInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 
 		return logicalDevice.createCommandPool(commandPoolCreateInfo);
 	}

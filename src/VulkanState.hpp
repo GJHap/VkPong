@@ -2,6 +2,7 @@
 
 #include "vulkanhpp_include.hpp"
 #include "Structs/BufferInfo.hpp"
+#include "Structs\VertexData.hpp"
 
 #include <GLFW\glfw3.h>
 
@@ -10,8 +11,6 @@ namespace vkPong
 	class VulkanState
 	{
 	private:
-		BufferInfo m_bufferInfo;
-		std::vector<vk::CommandBuffer> m_commandBuffers;
 		vk::CommandPool m_commandPool;
 		vk::DebugReportCallbackEXT m_debugReportCallback;
 		std::vector<vk::Fence> m_fences;
@@ -21,27 +20,36 @@ namespace vkPong
 		std::vector<vk::Semaphore> m_imageAvailableSemaphores;
 		std::vector<vk::Semaphore> m_imageRenderedSemaphores;
 		vk::Instance m_instance;
+		vk::Device m_logicalDevice;
+		vk::PhysicalDevice m_physicalDevice;
+		std::vector<vk::CommandBuffer> m_playerCommandBuffers;
+		std::vector<BufferInfo> m_playerVertexBuffers;
+		vk::Queue m_presentQueue;
+		vk::RenderPass m_renderPass;
+		vk::SurfaceKHR m_surface;
+		vk::Extent2D m_surfaceExtent;
 		vk::SwapchainKHR m_swapchain;
 		std::vector<vk::Framebuffer> m_swapchainFramebuffers;
 		std::vector<vk::Image> m_swapchainImages;
 		std::vector<vk::ImageView> m_swapchainImageViews;
-		vk::Device m_logicalDevice;
-		vk::PhysicalDevice m_physicalDevice;
-		vk::Queue m_presentQueue;
-		vk::RenderPass m_renderPass;
-		vk::SurfaceKHR m_surface;
 
 	public:
 		explicit VulkanState(GLFWwindow*);
 		~VulkanState();
-		vk::CommandBuffer commandBuffer(const uint32_t&) const;
-		vk::Fence fence(const uint32_t&) const;
-		vk::Queue graphicsQueue() const;
-		vk::Semaphore imageAvailableSemaphore(const uint32_t&) const;
-		vk::Semaphore imageRenderedSemaphore(const uint32_t&) const;
-		vk::Device logicalDevice() const;
-		vk::Queue presentQueue() const;
-		vk::SwapchainKHR swapchain() const;
+		const vk::Fence& fence(const uint32_t&) const;
+		const vk::Framebuffer& framebuffer(const uint32_t&) const;
+		const vk::Pipeline& graphicsPipeline() const;
+		const vk::Queue& graphicsQueue() const;
+		const vk::Semaphore& imageAvailableSemaphore(const uint32_t&) const;
+		const vk::Semaphore& imageRenderedSemaphore(const uint32_t&) const;
+		const vk::Device& logicalDevice() const;
+		const vk::PhysicalDevice& physicalDevice() const;
+		const vk::CommandBuffer& playerCommandBuffer(const uint32_t&) const;
+		BufferInfo& playerVertexBuffer(const uint32_t&);
+		const vk::Queue& presentQueue() const;
+		const vk::RenderPass& renderPass() const;
+		const vk::Extent2D& surfaceExtent() const;
+		const vk::SwapchainKHR& swapchain() const;
 		uint32_t swapchainImageCount() const;
 	};
 }

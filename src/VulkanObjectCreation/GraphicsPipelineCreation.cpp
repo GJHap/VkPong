@@ -41,7 +41,7 @@ namespace vkPong
 	vk::Pipeline createGraphicsPipeline(const vk::PipelineLayout& graphicsLayout, const vk::Device& logicalDevice, const vk::RenderPass& renderPass, const vk::Extent2D& extent)
 	{
 		vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo;
-		pipelineInputAssemblyStateCreateInfo.setTopology(vk::PrimitiveTopology::eTriangleList);
+		pipelineInputAssemblyStateCreateInfo.setTopology(vk::PrimitiveTopology::eTriangleStrip);
 
 		vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo;
 		pipelineRasterizationStateCreateInfo.setFrontFace(vk::FrontFace::eClockwise);

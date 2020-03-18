@@ -2,12 +2,13 @@
 
 namespace vkPong
 {
-	static void recordCommandBuffer(const vk::CommandBuffer& commandBuffer,
+	void recordCommandBuffer(const vk::CommandBuffer& commandBuffer,
 		const vk::Extent2D& extent,
 		const vk::Framebuffer& framebuffer,
 		const vk::Pipeline& graphicsPipeline,
 		const vk::RenderPass& renderPass,
-		const vk::Buffer& vertexBuffer)
+		const vk::Buffer& vertexBuffer,
+		const uint32_t& vertexCount)
 	{
 		vk::CommandBufferBeginInfo commandBufferBeginInfo;
 
@@ -28,27 +29,17 @@ namespace vkPong
 		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
 		commandBuffer.bindVertexBuffers(0, vk::ArrayProxy<const vk::Buffer>{vertexBuffer}, vk::ArrayProxy<const vk::DeviceSize>{0});
-		commandBuffer.draw(3, 1, 0, 0);
+		commandBuffer.draw(vertexCount, 1, 0, 0);
 		commandBuffer.endRenderPass();
 		commandBuffer.end();
 	}
 
-	vk::CommandBuffer createCommandBuffer(const vk::CommandPool& commandPool,
-		const vk::Device& logicalDevice,
-		const vk::Extent2D& extent,
-		const vk::Framebuffer& framebuffer,
-		const vk::Pipeline& graphicsPipeline,
-		const vk::RenderPass& renderPass,
-		const vk::Buffer& vertexBuffer)
+	vk::CommandBuffer createCommandBuffer(const vk::CommandPool& commandPool, const vk::Device& logicalDevice)
 	{
 		vk::CommandBufferAllocateInfo commandBufferAllocateInfo;
 		commandBufferAllocateInfo.setCommandBufferCount(1);
 		commandBufferAllocateInfo.setCommandPool(commandPool);
 
-		vk::CommandBuffer commandBuffer = logicalDevice.allocateCommandBuffers(commandBufferAllocateInfo)[0];
-
-		recordCommandBuffer(commandBuffer, extent, framebuffer, graphicsPipeline, renderPass, vertexBuffer);
-
-		return commandBuffer;
+		return logicalDevice.allocateCommandBuffers(commandBufferAllocateInfo)[0];
 	}
 }

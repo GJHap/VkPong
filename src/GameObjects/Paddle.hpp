@@ -7,6 +7,6 @@ namespace vkPong
 	class Paddle : public GameObject
 	{
 	public:
-		std::vector<VertexData> vertexData() const;
+		std::vector<VertexData> vertexData() const override;
 	};
 }
