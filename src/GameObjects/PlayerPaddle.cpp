@@ -2,13 +2,8 @@
 
 namespace vkPong
 {
-	float PlayerPaddle::x_edge_value() const
+	PlayerPaddle::PlayerPaddle()
+		: Paddle(-0.95, 0.65)
 	{
-		return -1.0f;
-	}
-
-	int PlayerPaddle::x_sign() const
-	{
-		return 1;
 	}
 }

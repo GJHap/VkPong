@@ -11,6 +11,10 @@ namespace vkPong
 	{
 	public:
 		virtual std::vector<VertexData> vertexData() const = 0;
-		static const Color color();
+
+		static constexpr Color color()
+		{
+			return { 1.0f, 1.0f, 1.0f };
+		}
 	};
 }

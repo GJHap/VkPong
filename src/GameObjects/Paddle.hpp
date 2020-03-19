@@ -6,13 +6,15 @@ namespace vkPong
 {
 	class Paddle : public GameObject
 	{
+	private:
+		float m_x;
+		float m_y;
 	public:
 		std::vector<VertexData> vertexData() const override;
 	protected:
-		virtual float x_edge_value() const = 0;
-		virtual int x_sign() const = 0;
-		float y_edge_value() const;
-		float height() const;
-		float width() const;
+		Paddle(const float&, const float&);
+	private:
+		constexpr float height() const { return 0.7f; }
+		constexpr float width() const { return 0.1f; }
 	};
 }

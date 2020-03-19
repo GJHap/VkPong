@@ -2,29 +2,25 @@
 
 namespace vkPong
 {
+	Paddle::Paddle(const float& x, const float& y)
+	{
+		m_x = x;
+		m_y = y;
+	}
+
 	std::vector<VertexData> Paddle::vertexData() const
 	{
+		const float x_left = m_x - width() * 0.5f;
+		const float x_right = m_x + width() * 0.5f;
+		const float y_bottom = m_y + height() * 0.5f;
+		const float y_top = m_y - height() * 0.5f;
+
 		return
 		{
-			{ { x_edge_value(), y_edge_value() }, GameObject::color() },
-			{ { x_edge_value() + x_sign() * width(), y_edge_value() }, GameObject::color() },
-			{ { x_edge_value() + x_sign() * width(), y_edge_value() - height() },  GameObject::color() },
-			{ { x_edge_value(), y_edge_value() - height() },  GameObject::color() },
+			{ { x_left, y_bottom }, GameObject::color() },
+			{ { x_right, y_bottom }, GameObject::color() },
+			{ { x_right, y_top },  GameObject::color() },
+			{ { x_left, y_top },  GameObject::color() },
 		};
-	}
-
-	float Paddle::y_edge_value() const
-	{
-		return 1.0f;
-	}
-
-	float Paddle::height() const
-	{
-		return 0.7f;
-	}
-
-	float Paddle::width() const
-	{
-		return 0.1f;
 	}
 }
