@@ -11,6 +11,8 @@ namespace vkPong
 	class VulkanState
 	{
 	private:
+		std::vector<vk::CommandBuffer> m_ballCommandBuffers;
+		std::vector<BufferInfo> m_ballVertexBuffers;
 		vk::CommandPool m_commandPool;
 		vk::DebugReportCallbackEXT m_debugReportCallback;
 		std::vector<vk::Fence> m_fences;
@@ -38,6 +40,8 @@ namespace vkPong
 	public:
 		explicit VulkanState(GLFWwindow*);
 		~VulkanState();
+		const vk::CommandBuffer& ballCommandBuffer(const uint32_t&) const;
+		BufferInfo& ballVertexBuffer(const uint32_t&);
 		const vk::Fence& fence(const uint32_t&) const;
 		const vk::Framebuffer& framebuffer(const uint32_t&) const;
 		const vk::Pipeline& graphicsPipeline() const;

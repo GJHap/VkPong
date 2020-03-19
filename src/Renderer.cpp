@@ -21,7 +21,7 @@ namespace vkPong
 		}
 	}
 
-	void render(VulkanState& vulkanState, const Paddle& player, const Paddle& opponent)
+	void render(VulkanState& vulkanState, const Paddle& player, const Paddle& opponent, const Ball& ball)
 	{
 		static uint32_t idx = 0;
 		const vk::Semaphore& imageAvailableSemaphore = vulkanState.imageAvailableSemaphore(idx);
@@ -40,6 +40,8 @@ namespace vkPong
 		BufferInfo& playerBufferInfo = vulkanState.playerVertexBuffer(idx);
 		const vk::CommandBuffer& opponentCommandBuffer = vulkanState.opponentCommandBuffer(idx);
 		BufferInfo& opponentBufferInfo = vulkanState.opponentVertexBuffer(idx);
+		const vk::CommandBuffer& ballCommandBuffer = vulkanState.ballCommandBuffer(idx);
+		BufferInfo& ballBufferInfo = vulkanState.ballVertexBuffer(idx);
 
 		uint32_t imageIndex = logicalDevice.acquireNextImageKHR(swapchain, UINT64_MAX, imageAvailableSemaphore, vk::Fence()).value;
 
@@ -52,8 +54,11 @@ namespace vkPong
 		setupVertexBuffer(opponentBufferInfo, logicalDevice, physicalDevice, opponent.vertexData());
 		recordCommandBuffer(opponentCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, opponentBufferInfo.buffer, static_cast<uint32_t>(opponent.vertexData().size()));
 
+		setupVertexBuffer(ballBufferInfo, logicalDevice, physicalDevice, ball.vertexData());
+		recordCommandBuffer(ballCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, ballBufferInfo.buffer, static_cast<uint32_t>(ball.vertexData().size()));
+
 		vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		std::vector<vk::CommandBuffer> commandBuffers{ playerCommandBuffer, opponentCommandBuffer };
+		std::vector<vk::CommandBuffer> commandBuffers{ playerCommandBuffer, opponentCommandBuffer, ballCommandBuffer };
 
 		vk::SubmitInfo submitInfo;
 		submitInfo.setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));

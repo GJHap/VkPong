@@ -22,11 +22,12 @@ int main(void)
 				vkPong::VulkanState vulkanState(window);
 				vkPong::PlayerPaddle player;
 				vkPong::OpponentPaddle opponent;
+				vkPong::Ball ball;
 
 				while (!glfwWindowShouldClose(window))
 				{
 					glfwPollEvents();
-					vkPong::render(vulkanState, player, opponent);
+					vkPong::render(vulkanState, player, opponent, ball);
 				}
 			}
 			catch (std::exception & e)

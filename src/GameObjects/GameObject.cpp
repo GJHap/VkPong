@@ -2,7 +2,7 @@
 
 namespace vkPong
 {
-	const Color GameObject::color() const
+	const Color GameObject::color()
 	{
 		return { 1.0f, 1.0f, 1.0f };
 	}

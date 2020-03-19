@@ -6,11 +6,10 @@ namespace vkPong
 	{
 		return
 		{
-			{ { x_edge_value(), y_edge_value() }, color() },
-			{ { x_edge_value() + x_sign() * width(), y_edge_value() }, color() },
-			{ { x_edge_value() + x_sign() * width(), y_edge_value() - height() },  color() },
-			{ { x_edge_value(), y_edge_value() - height() },  color() },
-			{ { x_edge_value(), y_edge_value() }, color() },
+			{ { x_edge_value(), y_edge_value() }, GameObject::color() },
+			{ { x_edge_value() + x_sign() * width(), y_edge_value() }, GameObject::color() },
+			{ { x_edge_value() + x_sign() * width(), y_edge_value() - height() },  GameObject::color() },
+			{ { x_edge_value(), y_edge_value() - height() },  GameObject::color() },
 		};
 	}
 

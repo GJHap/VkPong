@@ -39,8 +39,10 @@ namespace vkPong
 		m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 		m_playerVertexBuffers.resize(swapchainImageCount());
 		m_opponentVertexBuffers.resize(swapchainImageCount());
+		m_ballVertexBuffers.resize(swapchainImageCount());
 		std::generate_n(std::back_inserter(m_playerCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_opponentCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
+		std::generate_n(std::back_inserter(m_ballCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_fences), m_swapchainFramebuffers.size(), [this]() { return createFence(m_logicalDevice); });
@@ -67,11 +69,24 @@ namespace vkPong
 
 			m_logicalDevice.freeMemory(m_opponentVertexBuffers[i].bufferMemory);
 			m_logicalDevice.destroyBuffer(m_opponentVertexBuffers[i].buffer);
+
+			m_logicalDevice.freeMemory(m_ballVertexBuffers[i].bufferMemory);
+			m_logicalDevice.destroyBuffer(m_ballVertexBuffers[i].buffer);
 		}
 		m_logicalDevice.destroy();
 		m_instance.destroySurfaceKHR(m_surface);
 		m_instance.destroyDebugReportCallbackEXT(m_debugReportCallback, nullptr, getVkDestroyDebugReportCallbackEXTDispatchLoader(m_instance));
 		m_instance.destroy();
+	}
+
+	const vk::CommandBuffer& VulkanState::ballCommandBuffer(const uint32_t& index) const
+	{
+		return m_ballCommandBuffers[index];
+	}
+
+	BufferInfo& VulkanState::ballVertexBuffer(const uint32_t& index)
+	{
+		return m_ballVertexBuffers[index];
 	}
 
 	const vk::Fence& VulkanState::fence(const uint32_t& index) const

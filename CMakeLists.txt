@@ -25,6 +25,8 @@ set(SOURCE_LIST
     "src/vulkanhpp_include.hpp"
     "src/VulkanState.cpp"
     "src/VulkanState.hpp"
+    "src/GameObjects/Ball.cpp"
+    "src/GameObjects/Ball.hpp"
     "src/GameObjects/GameObject.cpp"
     "src/GameObjects/GameObject.hpp"
     "src/GameObjects/OpponentPaddle.cpp"
