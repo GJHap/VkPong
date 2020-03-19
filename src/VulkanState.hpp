@@ -21,6 +21,8 @@ namespace vkPong
 		std::vector<vk::Semaphore> m_imageRenderedSemaphores;
 		vk::Instance m_instance;
 		vk::Device m_logicalDevice;
+		std::vector<vk::CommandBuffer> m_opponentCommandBuffers;
+		std::vector<BufferInfo> m_opponentVertexBuffers;
 		vk::PhysicalDevice m_physicalDevice;
 		std::vector<vk::CommandBuffer> m_playerCommandBuffers;
 		std::vector<BufferInfo> m_playerVertexBuffers;
@@ -43,6 +45,8 @@ namespace vkPong
 		const vk::Semaphore& imageAvailableSemaphore(const uint32_t&) const;
 		const vk::Semaphore& imageRenderedSemaphore(const uint32_t&) const;
 		const vk::Device& logicalDevice() const;
+		const vk::CommandBuffer& opponentCommandBuffer(const uint32_t&) const;
+		BufferInfo& opponentVertexBuffer(const uint32_t&);
 		const vk::PhysicalDevice& physicalDevice() const;
 		const vk::CommandBuffer& playerCommandBuffer(const uint32_t&) const;
 		BufferInfo& playerVertexBuffer(const uint32_t&);

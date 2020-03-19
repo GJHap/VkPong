@@ -38,7 +38,9 @@ namespace vkPong
 
 		m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
 		m_playerVertexBuffers.resize(swapchainImageCount());
+		m_opponentVertexBuffers.resize(swapchainImageCount());
 		std::generate_n(std::back_inserter(m_playerCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
+		std::generate_n(std::back_inserter(m_opponentCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_fences), m_swapchainFramebuffers.size(), [this]() { return createFence(m_logicalDevice); });
@@ -62,6 +64,9 @@ namespace vkPong
 		{
 			m_logicalDevice.freeMemory(m_playerVertexBuffers[i].bufferMemory);
 			m_logicalDevice.destroyBuffer(m_playerVertexBuffers[i].buffer);
+
+			m_logicalDevice.freeMemory(m_opponentVertexBuffers[i].bufferMemory);
+			m_logicalDevice.destroyBuffer(m_opponentVertexBuffers[i].buffer);
 		}
 		m_logicalDevice.destroy();
 		m_instance.destroySurfaceKHR(m_surface);
@@ -102,6 +107,16 @@ namespace vkPong
 	const vk::Device& VulkanState::logicalDevice() const
 	{
 		return m_logicalDevice;
+	}
+
+	const vk::CommandBuffer& VulkanState::opponentCommandBuffer(const uint32_t& index) const
+	{
+		return m_opponentCommandBuffers[index];
+	}
+
+	BufferInfo& VulkanState::opponentVertexBuffer(const uint32_t& index)
+	{
+		return m_opponentVertexBuffers[index];
 	}
 
 	const vk::PhysicalDevice& VulkanState::physicalDevice() const

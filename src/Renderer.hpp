@@ -5,5 +5,5 @@
 
 namespace vkPong
 {
-	void render(VulkanState&, const Paddle&);
+	void render(VulkanState&, const Paddle&, const Paddle&);
 }

@@ -21,7 +21,7 @@ namespace vkPong
 		}
 	}
 
-	void render(VulkanState& vulkanState, const Paddle& player)
+	void render(VulkanState& vulkanState, const Paddle& player, const Paddle& opponent)
 	{
 		static uint32_t idx = 0;
 		const vk::Semaphore& imageAvailableSemaphore = vulkanState.imageAvailableSemaphore(idx);
@@ -38,6 +38,8 @@ namespace vkPong
 		const vk::Extent2D& surfaceExtent = vulkanState.surfaceExtent();
 		const vk::CommandBuffer& playerCommandBuffer = vulkanState.playerCommandBuffer(idx);
 		BufferInfo& playerBufferInfo = vulkanState.playerVertexBuffer(idx);
+		const vk::CommandBuffer& opponentCommandBuffer = vulkanState.opponentCommandBuffer(idx);
+		BufferInfo& opponentBufferInfo = vulkanState.opponentVertexBuffer(idx);
 
 		uint32_t imageIndex = logicalDevice.acquireNextImageKHR(swapchain, UINT64_MAX, imageAvailableSemaphore, vk::Fence()).value;
 
@@ -45,10 +47,13 @@ namespace vkPong
 		logicalDevice.resetFences(vk::ArrayProxy<const vk::Fence>(fence));
 
 		setupVertexBuffer(playerBufferInfo, logicalDevice, physicalDevice, player.vertexData());
-		recordCommandBuffer(playerCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, playerBufferInfo.buffer, player.vertexData().size());
+		recordCommandBuffer(playerCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, playerBufferInfo.buffer, static_cast<uint32_t>(player.vertexData().size()));
+
+		setupVertexBuffer(opponentBufferInfo, logicalDevice, physicalDevice, opponent.vertexData());
+		recordCommandBuffer(opponentCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, opponentBufferInfo.buffer, static_cast<uint32_t>(opponent.vertexData().size()));
 
 		vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		std::vector<vk::CommandBuffer> commandBuffers{ playerCommandBuffer };
+		std::vector<vk::CommandBuffer> commandBuffers{ playerCommandBuffer, opponentCommandBuffer };
 
 		vk::SubmitInfo submitInfo;
 		submitInfo.setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));

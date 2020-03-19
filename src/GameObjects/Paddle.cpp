@@ -4,19 +4,28 @@ namespace vkPong
 {
 	std::vector<VertexData> Paddle::vertexData() const
 	{
-		Color color = { 1.0f, 1.0f, 1.0f };
-		float vulkan_x_left = -1.0f;
-		float vulkan_y_bottom = 1.0f;
-		float height = 0.7f;
-		float width = 0.1f;
-
 		return
 		{
-			{ { vulkan_x_left, vulkan_y_bottom }, color },
-			{ { vulkan_x_left + width, vulkan_y_bottom }, color },
-			{ { vulkan_x_left + width, vulkan_y_bottom - height },  color },
-			{ { vulkan_x_left, vulkan_y_bottom - height },  color },
-			{ { vulkan_x_left, vulkan_y_bottom }, color },
+			{ { x_edge_value(), y_edge_value() }, color() },
+			{ { x_edge_value() + x_sign() * width(), y_edge_value() }, color() },
+			{ { x_edge_value() + x_sign() * width(), y_edge_value() - height() },  color() },
+			{ { x_edge_value(), y_edge_value() - height() },  color() },
+			{ { x_edge_value(), y_edge_value() }, color() },
 		};
+	}
+
+	float Paddle::y_edge_value() const
+	{
+		return 1.0f;
+	}
+
+	float Paddle::height() const
+	{
+		return 0.7f;
+	}
+
+	float Paddle::width() const
+	{
+		return 0.1f;
 	}
 }
