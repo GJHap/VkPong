@@ -3,7 +3,7 @@
 namespace vkPong
 {
 	PlayerPaddle::PlayerPaddle()
-		: Paddle(-0.95, 0.65)
+		: Paddle({ -0.95f, 0.65f })
 	{
 	}
 }

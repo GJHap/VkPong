@@ -6,9 +6,8 @@ namespace vkPong
 {
 	class Ball : GameObject
 	{
-	private:
-		static std::vector<VertexData> ballVertexData;
 	public:
+		explicit Ball();
 		std::vector<VertexData> vertexData() const override;
 	};
 }

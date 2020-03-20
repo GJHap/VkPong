@@ -9,7 +9,10 @@ namespace vkPong
 {
 	class GameObject
 	{
+	protected:
+		Position m_position;
 	public:
+		explicit GameObject(const Position&);
 		virtual std::vector<VertexData> vertexData() const = 0;
 
 		static constexpr Color color()
