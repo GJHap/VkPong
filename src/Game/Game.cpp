@@ -1,12 +1,22 @@
 #include "Game.hpp"
-
 #include "GameObjects/PlayerPaddle.hpp"
 #include "GameObjects/OpponentPaddle.hpp"
-
 #include "Renderer.hpp"
 
 namespace vkPong
 {
+	static void checkBallCollision(Ball& ball, const Paddle& player, const Paddle& opponent)
+	{
+		if (ball.collidedWithPaddle(player) || ball.collidedWithPaddle(opponent))
+		{
+			ball.toggleDirectionX();
+		}
+		else if (ball.collidedWithWall())
+		{
+			ball.toggleDirectionY();
+		}
+	}
+
 	static void keyCallback(GLFWwindow* window, int key, int, int, int)
 	{
 		Game* game = static_cast<Game*>(glfwGetWindowUserPointer(window));
@@ -25,7 +35,9 @@ namespace vkPong
 		while (!glfwWindowShouldClose(m_window))
 		{
 			glfwPollEvents();
+			checkBallCollision(m_ball, m_player, m_opponent);
 			m_ball.move();
+
 			vkPong::render(m_vulkanState, m_player, m_opponent, m_ball);
 		}
 	}

@@ -11,10 +11,14 @@ namespace vkPong
 		constexpr static float width{ 0.1f };
 		constexpr static float verticalIncrement{ 0.1f };
 	public:
+		const float bottom() const;
+		const float left() const;
+		void moveDown();
+		void moveUp();
+		const float right() const;
+		const float top() const;
 		const uint32_t vertexCount() const override;
 		std::vector<VertexData> vertexData() const override;
-		void moveUp();
-		void moveDown();
 	protected:
 		explicit Paddle(const Position&);
 	};

@@ -7,6 +7,10 @@ namespace vkPong
 	{
 	}
 
+	const float Paddle::bottom() const { return m_position.y + height * 0.5f; }
+
+	const float Paddle::left() const { return m_position.x - width * 0.5f; }
+
 	void Paddle::moveUp()
 	{
 		m_position = { m_position.x, m_position.y - verticalIncrement };
@@ -17,6 +21,10 @@ namespace vkPong
 		m_position = { m_position.x, m_position.y + verticalIncrement };
 	}
 
+	const float Paddle::right() const { return m_position.x + width * 0.5f; }
+
+	const float Paddle::top() const { return m_position.y - height * 0.5f; }
+
 	const uint32_t Paddle::vertexCount() const
 	{
 		return 4;
@@ -24,17 +32,17 @@ namespace vkPong
 
 	std::vector<VertexData> Paddle::vertexData() const
 	{
-		const float left = m_position.x - width * 0.5f;
-		const float right = m_position.x + width * 0.5f;
-		const float bottom = m_position.y + height * 0.5f;
-		const float top = m_position.y - height * 0.5f;
+		const float x_left = left();
+		const float x_right = right();
+		const float y_bottom = bottom();
+		const float y_top = top();
 
 		return
 		{
-			{ { left, bottom }, GameObject::color() },
-			{ { right, bottom }, GameObject::color() },
-			{ { right, top },  GameObject::color() },
-			{ { left, top },  GameObject::color() },
+			{ { x_left, y_bottom }, GameObject::color() },
+			{ { x_right, y_bottom }, GameObject::color() },
+			{ { x_right, y_top },  GameObject::color() },
+			{ { x_left, y_top },  GameObject::color() },
 		};
 	}
 }
