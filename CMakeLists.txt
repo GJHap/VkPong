@@ -35,6 +35,7 @@ set(SOURCE_LIST
     "src/Game/GameObjects/PlayerPaddle.hpp"
     "src/Structs/BufferInfo.hpp"
     "src/Structs/Color.hpp"
+    "src/Structs/Direction.hpp"
     "src/Structs/Position.hpp"
     "src/Structs/VertexData.cpp"
     "src/Structs/VertexData.hpp"

@@ -25,6 +25,7 @@ namespace vkPong
 		while (!glfwWindowShouldClose(m_window))
 		{
 			glfwPollEvents();
+			m_ball.move();
 			vkPong::render(m_vulkanState, m_player, m_opponent, m_ball);
 		}
 	}

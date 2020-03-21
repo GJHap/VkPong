@@ -6,9 +6,7 @@
 namespace vkPong
 {
 	Ball::Ball()
-		: GameObject({ 0.0f, 0.0f })
-	{
-	}
+		: GameObject{ {0.0f, 0.0f} }, m_direction{ Direction({0.0005f, 0.0005f}) } {}
 
 	const uint32_t Ball::vertexCount() const
 	{
@@ -25,5 +23,10 @@ namespace vkPong
 		});
 
 		return transformation;
+	}
+
+	void Ball::move()
+	{
+		m_position = { m_position.x + m_direction.x, m_position.y + m_direction.y };
 	}
 }
