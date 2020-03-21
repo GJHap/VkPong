@@ -1,10 +1,6 @@
 #pragma once
 
 #include "GameObject.hpp"
-#include "../Structs/VertexData.hpp"
-
-#include <algorithm>
-#include <vector>
 
 namespace vkPong
 {

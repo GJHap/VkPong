@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VulkanState.hpp"
+#include "../VulkanState.hpp"
 #include "GameObjects\Paddle.hpp"
 #include "GameObjects\Ball.hpp"
 

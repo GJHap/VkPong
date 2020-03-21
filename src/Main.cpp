@@ -1,9 +1,5 @@
 #include "VulkanState.hpp"
-#include "GameObjects\PlayerPaddle.hpp"
-#include "GameObjects\OpponentPaddle.hpp"
-#include "Structs\BufferInfo.hpp"
-#include "Structs\VertexData.hpp"
-#include "Renderer.hpp"
+#include "Game/Game.hpp"
 
 #include <iostream>
 
@@ -20,15 +16,9 @@ int main(void)
 			try
 			{
 				vkPong::VulkanState vulkanState(window);
-				vkPong::PlayerPaddle player;
-				vkPong::OpponentPaddle opponent;
-				vkPong::Ball ball;
+				vkPong::Game game(window, vulkanState);
 
-				while (!glfwWindowShouldClose(window))
-				{
-					glfwPollEvents();
-					vkPong::render(vulkanState, player, opponent, ball);
-				}
+				game.run();
 			}
 			catch (std::exception & e)
 			{

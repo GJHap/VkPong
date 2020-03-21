@@ -1,7 +1,6 @@
 #include "VulkanState.hpp"
 #include "VulkanExtensions.hpp"
 #include "VulkanObjectCreation/VulkanObjectCreation.hpp"
-#include "GameObjects/Paddle.hpp"
 
 namespace vkPong
 {
@@ -40,9 +39,7 @@ namespace vkPong
 		m_playerVertexBuffers.resize(swapchainImageCount());
 		m_opponentVertexBuffers.resize(swapchainImageCount());
 		m_ballVertexBuffers.resize(swapchainImageCount());
-		std::generate_n(std::back_inserter(m_playerCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_opponentCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_ballCommandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
+		std::generate_n(std::back_inserter(m_commandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
 		std::generate_n(std::back_inserter(m_fences), m_swapchainFramebuffers.size(), [this]() { return createFence(m_logicalDevice); });
@@ -54,7 +51,7 @@ namespace vkPong
 		for (vk::Fence& fence : m_fences) m_logicalDevice.destroyFence(fence);
 		for (vk::Semaphore& semaphore : m_imageRenderedSemaphores) m_logicalDevice.destroySemaphore(semaphore);
 		for (vk::Semaphore& semaphore : m_imageAvailableSemaphores) m_logicalDevice.destroySemaphore(semaphore);
-		m_logicalDevice.freeCommandBuffers(m_commandPool, vk::ArrayProxy<const vk::CommandBuffer>(m_playerCommandBuffers));
+		m_logicalDevice.freeCommandBuffers(m_commandPool, vk::ArrayProxy<const vk::CommandBuffer>(m_commandBuffers));
 		m_logicalDevice.destroyCommandPool(m_commandPool);
 		for (vk::Framebuffer& framebuffer : m_swapchainFramebuffers) m_logicalDevice.destroyFramebuffer(framebuffer);
 		for (vk::ImageView& imageView : m_swapchainImageViews) m_logicalDevice.destroyImageView(imageView);
@@ -79,14 +76,14 @@ namespace vkPong
 		m_instance.destroy();
 	}
 
-	const vk::CommandBuffer& VulkanState::ballCommandBuffer(const uint32_t& index) const
-	{
-		return m_ballCommandBuffers[index];
-	}
-
 	BufferInfo& VulkanState::ballVertexBuffer(const uint32_t& index)
 	{
 		return m_ballVertexBuffers[index];
+	}
+
+	const vk::CommandBuffer& VulkanState::commandBuffer(const uint32_t& index) const
+	{
+		return m_commandBuffers[index];
 	}
 
 	const vk::Fence& VulkanState::fence(const uint32_t& index) const
@@ -124,11 +121,6 @@ namespace vkPong
 		return m_logicalDevice;
 	}
 
-	const vk::CommandBuffer& VulkanState::opponentCommandBuffer(const uint32_t& index) const
-	{
-		return m_opponentCommandBuffers[index];
-	}
-
 	BufferInfo& VulkanState::opponentVertexBuffer(const uint32_t& index)
 	{
 		return m_opponentVertexBuffers[index];
@@ -137,11 +129,6 @@ namespace vkPong
 	const vk::PhysicalDevice& VulkanState::physicalDevice() const
 	{
 		return m_physicalDevice;
-	}
-
-	const vk::CommandBuffer& VulkanState::playerCommandBuffer(const uint32_t& index) const
-	{
-		return m_playerCommandBuffers[index];
 	}
 
 	BufferInfo& VulkanState::playerVertexBuffer(const uint32_t& index)

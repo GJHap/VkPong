@@ -7,8 +7,12 @@ namespace vkPong
 		const vk::Framebuffer& framebuffer,
 		const vk::Pipeline& graphicsPipeline,
 		const vk::RenderPass& renderPass,
-		const vk::Buffer& vertexBuffer,
-		const uint32_t& vertexCount)
+		const vk::Buffer& playerVertexBuffer,
+		const uint32_t& playerVertexCount,
+		const vk::Buffer& opponentVertexBuffer,
+		const uint32_t& opponentVertexCount,
+		const vk::Buffer& ballVertexBuffer,
+		const uint32_t& ballVertexCount)
 	{
 		vk::CommandBufferBeginInfo commandBufferBeginInfo;
 
@@ -26,10 +30,14 @@ namespace vkPong
 		renderPassBeginInfo.setRenderPass(renderPass);
 
 		commandBuffer.begin(commandBufferBeginInfo);
-		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
-		commandBuffer.bindVertexBuffers(0, vk::ArrayProxy<const vk::Buffer>{vertexBuffer}, vk::ArrayProxy<const vk::DeviceSize>{0});
-		commandBuffer.draw(vertexCount, 1, 0, 0);
+		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+		commandBuffer.bindVertexBuffers(0, vk::ArrayProxy<const vk::Buffer>{playerVertexBuffer}, vk::ArrayProxy<const vk::DeviceSize>{0});
+		commandBuffer.draw(playerVertexCount, 1, 0, 0);
+		commandBuffer.bindVertexBuffers(0, vk::ArrayProxy<const vk::Buffer>{opponentVertexBuffer}, vk::ArrayProxy<const vk::DeviceSize>{0});
+		commandBuffer.draw(opponentVertexCount, 1, 0, 0);
+		commandBuffer.bindVertexBuffers(0, vk::ArrayProxy<const vk::Buffer>{ballVertexBuffer}, vk::ArrayProxy<const vk::DeviceSize>{0});
+		commandBuffer.draw(ballVertexCount, 1, 0, 0);
 		commandBuffer.endRenderPass();
 		commandBuffer.end();
 	}

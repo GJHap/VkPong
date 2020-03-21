@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
-
-#include "VulkanObjectCreation\VulkanObjectCreation.hpp"
+#include "../VulkanObjectCreation\BufferCreation.hpp"
+#include "../VulkanObjectCreation\CommandBufferCreation.hpp"
 
 namespace vkPong
 {
@@ -36,11 +36,9 @@ namespace vkPong
 		const vk::Pipeline& graphicsPipeline = vulkanState.graphicsPipeline();
 		const vk::RenderPass& renderPass = vulkanState.renderPass();
 		const vk::Extent2D& surfaceExtent = vulkanState.surfaceExtent();
-		const vk::CommandBuffer& playerCommandBuffer = vulkanState.playerCommandBuffer(idx);
+		const vk::CommandBuffer& playerCommandBuffer = vulkanState.commandBuffer(idx);
 		BufferInfo& playerBufferInfo = vulkanState.playerVertexBuffer(idx);
-		const vk::CommandBuffer& opponentCommandBuffer = vulkanState.opponentCommandBuffer(idx);
 		BufferInfo& opponentBufferInfo = vulkanState.opponentVertexBuffer(idx);
-		const vk::CommandBuffer& ballCommandBuffer = vulkanState.ballCommandBuffer(idx);
 		BufferInfo& ballBufferInfo = vulkanState.ballVertexBuffer(idx);
 
 		uint32_t imageIndex = logicalDevice.acquireNextImageKHR(swapchain, UINT64_MAX, imageAvailableSemaphore, vk::Fence()).value;
@@ -49,16 +47,22 @@ namespace vkPong
 		logicalDevice.resetFences(vk::ArrayProxy<const vk::Fence>(fence));
 
 		setupVertexBuffer(playerBufferInfo, logicalDevice, physicalDevice, player.vertexData());
-		recordCommandBuffer(playerCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, playerBufferInfo.buffer, static_cast<uint32_t>(player.vertexData().size()));
-
 		setupVertexBuffer(opponentBufferInfo, logicalDevice, physicalDevice, opponent.vertexData());
-		recordCommandBuffer(opponentCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, opponentBufferInfo.buffer, static_cast<uint32_t>(opponent.vertexData().size()));
-
 		setupVertexBuffer(ballBufferInfo, logicalDevice, physicalDevice, ball.vertexData());
-		recordCommandBuffer(ballCommandBuffer, surfaceExtent, framebuffer, graphicsPipeline, renderPass, ballBufferInfo.buffer, static_cast<uint32_t>(ball.vertexData().size()));
+		recordCommandBuffer(playerCommandBuffer,
+			surfaceExtent,
+			framebuffer,
+			graphicsPipeline,
+			renderPass,
+			playerBufferInfo.buffer,
+			player.vertexCount(),
+			opponentBufferInfo.buffer,
+			opponent.vertexCount(),
+			ballBufferInfo.buffer,
+			ball.vertexCount());
 
 		vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		std::vector<vk::CommandBuffer> commandBuffers{ playerCommandBuffer, opponentCommandBuffer, ballCommandBuffer };
+		std::vector<vk::CommandBuffer> commandBuffers{ playerCommandBuffer };
 
 		vk::SubmitInfo submitInfo;
 		submitInfo.setCommandBufferCount(static_cast<uint32_t>(commandBuffers.size()));

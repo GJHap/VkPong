@@ -10,9 +10,9 @@ namespace vkPong
 {
 	class VulkanState
 	{
-	private:
-		std::vector<vk::CommandBuffer> m_ballCommandBuffers;
+	public:
 		std::vector<BufferInfo> m_ballVertexBuffers;
+		std::vector<vk::CommandBuffer> m_commandBuffers;
 		vk::CommandPool m_commandPool;
 		vk::DebugReportCallbackEXT m_debugReportCallback;
 		std::vector<vk::Fence> m_fences;
@@ -23,10 +23,8 @@ namespace vkPong
 		std::vector<vk::Semaphore> m_imageRenderedSemaphores;
 		vk::Instance m_instance;
 		vk::Device m_logicalDevice;
-		std::vector<vk::CommandBuffer> m_opponentCommandBuffers;
 		std::vector<BufferInfo> m_opponentVertexBuffers;
 		vk::PhysicalDevice m_physicalDevice;
-		std::vector<vk::CommandBuffer> m_playerCommandBuffers;
 		std::vector<BufferInfo> m_playerVertexBuffers;
 		vk::Queue m_presentQueue;
 		vk::RenderPass m_renderPass;
@@ -40,8 +38,8 @@ namespace vkPong
 	public:
 		explicit VulkanState(GLFWwindow*);
 		~VulkanState();
-		const vk::CommandBuffer& ballCommandBuffer(const uint32_t&) const;
 		BufferInfo& ballVertexBuffer(const uint32_t&);
+		const vk::CommandBuffer& commandBuffer(const uint32_t&) const;
 		const vk::Fence& fence(const uint32_t&) const;
 		const vk::Framebuffer& framebuffer(const uint32_t&) const;
 		const vk::Pipeline& graphicsPipeline() const;
@@ -49,10 +47,8 @@ namespace vkPong
 		const vk::Semaphore& imageAvailableSemaphore(const uint32_t&) const;
 		const vk::Semaphore& imageRenderedSemaphore(const uint32_t&) const;
 		const vk::Device& logicalDevice() const;
-		const vk::CommandBuffer& opponentCommandBuffer(const uint32_t&) const;
 		BufferInfo& opponentVertexBuffer(const uint32_t&);
 		const vk::PhysicalDevice& physicalDevice() const;
-		const vk::CommandBuffer& playerCommandBuffer(const uint32_t&) const;
 		BufferInfo& playerVertexBuffer(const uint32_t&);
 		const vk::Queue& presentQueue() const;
 		const vk::RenderPass& renderPass() const;

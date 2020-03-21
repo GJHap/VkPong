@@ -8,6 +8,7 @@ namespace vkPong
 	{
 	public:
 		explicit Ball();
+		const uint32_t vertexCount() const override;
 		std::vector<VertexData> vertexData() const override;
 	};
 }

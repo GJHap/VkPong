@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Structs/Position.hpp"
-#include "../Structs/VertexData.hpp"
+#include "../../Structs/Position.hpp"
+#include "../../Structs/VertexData.hpp"
 
 #include <vector>
 
@@ -13,6 +13,7 @@ namespace vkPong
 		Position m_position;
 	public:
 		explicit GameObject(const Position&);
+		virtual const uint32_t vertexCount() const = 0;
 		virtual std::vector<VertexData> vertexData() const = 0;
 
 		static constexpr Color color()

@@ -6,7 +6,7 @@ namespace vkPong
 	{
 		vk::AttachmentDescription attachmentDescription;
 		attachmentDescription.setFormat(format);
-		attachmentDescription.setLoadOp(vk::AttachmentLoadOp::eDontCare);
+		attachmentDescription.setLoadOp(vk::AttachmentLoadOp::eClear);
 		attachmentDescription.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
 		attachmentDescription.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
 		attachmentDescription.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);

@@ -11,5 +11,9 @@ namespace vkPong
 		const vk::Pipeline&,
 		const vk::RenderPass&,
 		const vk::Buffer&,
+		const uint32_t&,
+		const vk::Buffer&,
+		const uint32_t&,
+		const vk::Buffer&,
 		const uint32_t&);
 }
