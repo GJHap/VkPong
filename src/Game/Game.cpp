@@ -1,6 +1,4 @@
 #include "Game.hpp"
-#include "GameObjects/PlayerPaddle.hpp"
-#include "GameObjects/OpponentPaddle.hpp"
 #include "Renderer.hpp"
 
 namespace vkPong
@@ -36,6 +34,7 @@ namespace vkPong
 		{
 			glfwPollEvents();
 			checkBallCollision(m_ball, m_player, m_opponent);
+			m_opponent.move(m_ball);
 			m_ball.move();
 
 			vkPong::render(m_vulkanState, m_player, m_opponent, m_ball);

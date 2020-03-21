@@ -6,4 +6,6 @@ namespace vkPong
 		: m_position{ position }
 	{
 	}
+
+	const Position& GameObject::position() const { return m_position; }
 }

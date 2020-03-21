@@ -13,6 +13,7 @@ namespace vkPong
 		Position m_position;
 	public:
 		explicit GameObject(const Position&);
+		const Position& position() const;
 		virtual const uint32_t vertexCount() const = 0;
 		virtual std::vector<VertexData> vertexData() const = 0;
 
