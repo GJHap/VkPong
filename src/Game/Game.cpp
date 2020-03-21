@@ -1,7 +1,7 @@
 #include "Game.hpp"
 
-#include "GameObjects\PlayerPaddle.hpp"
-#include "GameObjects\OpponentPaddle.hpp"
+#include "GameObjects/PlayerPaddle.hpp"
+#include "GameObjects/OpponentPaddle.hpp"
 
 #include "Renderer.hpp"
 

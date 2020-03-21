@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../vulkanhpp_include.hpp"
-#include "../Structs/BufferInfo.hpp"
-#include "../Structs/VertexData.hpp"
+#include "../../Structs/BufferInfo.hpp"
+#include "../../Structs/VertexData.hpp"
 
 namespace vkPong
 {

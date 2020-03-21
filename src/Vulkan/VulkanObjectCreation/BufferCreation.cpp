@@ -1,5 +1,5 @@
 #include "BufferCreation.hpp"
-#include "../Structs/VertexData.hpp"
+#include "../../Structs/VertexData.hpp"
 
 namespace vkPong
 {

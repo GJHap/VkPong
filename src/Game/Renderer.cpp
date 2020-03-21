@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
-#include "../VulkanObjectCreation\BufferCreation.hpp"
-#include "../VulkanObjectCreation\CommandBufferCreation.hpp"
+#include "../Vulkan/VulkanObjectCreation/BufferCreation.hpp"
+#include "../Vulkan/VulkanObjectCreation/CommandBufferCreation.hpp"
 
 namespace vkPong
 {

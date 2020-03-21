@@ -1,5 +1,5 @@
 #include "GraphicsPipelineCreation.hpp"
-#include "../Structs/VertexData.hpp"
+#include "../../Structs/VertexData.hpp"
 
 #include <fstream>
 

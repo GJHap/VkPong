@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../VulkanState.hpp"
-#include "GameObjects\Paddle.hpp"
-#include "GameObjects\Ball.hpp"
+#include "../Vulkan/VulkanState.hpp"
+#include "GameObjects/Paddle.hpp"
+#include "GameObjects/Ball.hpp"
 
 namespace vkPong
 {

@@ -1,16 +1,16 @@
 #pragma once
 
 #include "vulkanhpp_include.hpp"
-#include "Structs/BufferInfo.hpp"
-#include "Structs\VertexData.hpp"
+#include "../Structs/BufferInfo.hpp"
+#include "../Structs/VertexData.hpp"
 
-#include <GLFW\glfw3.h>
+#include <GLFW/glfw3.h>
 
 namespace vkPong
 {
 	class VulkanState
 	{
-	public:
+	private:
 		std::vector<BufferInfo> m_ballVertexBuffers;
 		std::vector<vk::CommandBuffer> m_commandBuffers;
 		vk::CommandPool m_commandPool;

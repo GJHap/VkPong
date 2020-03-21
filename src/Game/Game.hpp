@@ -1,10 +1,10 @@
 #pragma once
 
-#include "GameObjects\Ball.hpp"
-#include "GameObjects\Paddle.hpp"
-#include "../VulkanState.hpp"
+#include "GameObjects/Ball.hpp"
+#include "GameObjects/Paddle.hpp"
+#include "../Vulkan/VulkanState.hpp"
 
-#include "GLFW\glfw3.h"
+#include "GLFW/glfw3.h"
 
 namespace vkPong
 {
