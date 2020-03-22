@@ -12,6 +12,7 @@ namespace vkPong
 	class Game
 	{
 	private:
+		bool m_continueGame{ true };
 		PlayerPaddle m_player;
 		OpponentPaddle m_opponent;
 		Ball m_ball;

@@ -30,7 +30,7 @@ namespace vkPong
 		glfwSetWindowUserPointer(m_window, this);
 		glfwSetKeyCallback(m_window, keyCallback);
 
-		while (!glfwWindowShouldClose(m_window))
+		while (!glfwWindowShouldClose(m_window) && m_continueGame)
 		{
 			glfwPollEvents();
 			checkBallCollision(m_ball, m_player, m_opponent);
@@ -49,6 +49,10 @@ namespace vkPong
 		else if (key == GLFW_KEY_DOWN)
 		{
 			m_player.moveDown();
+		}
+		else if (key == GLFW_KEY_Q)
+		{
+			m_continueGame = false;
 		}
 	}
 }
