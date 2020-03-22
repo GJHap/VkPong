@@ -1,5 +1,4 @@
 #include "Ball.hpp"
-#include "BallVertices.hpp"
 
 #include <cmath>
 
@@ -7,19 +6,6 @@ namespace vkPong
 {
 	Ball::Ball()
 		: GameObject{ {0.0f, 0.0f} }, m_direction{ Direction({0.0005f, 0.0005f}) } {}
-
-	bool Ball::collidedWithPaddle(const Paddle& paddle) const
-	{
-		const float x_left = paddle.left();
-		const float x_right = paddle.right();
-		const float y_bottom = paddle.bottom();
-		const float y_top = paddle.top();
-
-		return m_position.x >= x_left
-			&& m_position.x <= x_right
-			&& m_position.y <= y_bottom
-			&& m_position.y >= y_top;
-	}
 
 	bool Ball::collidedWithWall() const
 	{
@@ -44,7 +30,7 @@ namespace vkPong
 
 	const uint32_t Ball::vertexCount() const
 	{
-		return static_cast<uint32_t>(ballVertexData.size());
+		return 361;
 	}
 
 	std::vector<VertexData> Ball::vertexData() const
@@ -57,5 +43,20 @@ namespace vkPong
 		}
 
 		return vertexData;
+	}
+
+	float Ball::xDirectionSign() const
+	{
+		float result = 0.0f;
+		if (m_direction.x < 0)
+		{
+			result = -1.0f;
+		}
+		else if (m_direction.x > 0)
+		{
+			result = 1.0f;
+		}
+
+		return result;
 	}
 }

@@ -1,7 +1,5 @@
 #include "OpponentPaddle.hpp"
 
-#include "Ball.hpp"
-
 namespace vkPong
 {
 	OpponentPaddle::OpponentPaddle()
@@ -9,13 +7,18 @@ namespace vkPong
 	{
 	}
 
-	void OpponentPaddle::move(const Ball& ball)
+	const float OpponentPaddle::ballCollisionDirection() const
 	{
-		if (m_position.y < ball.position().y)
+		return 1.0f;
+	}
+
+	void OpponentPaddle::move(const float& ballYPosition)
+	{
+		if (m_position.y < ballYPosition)
 		{
 			moveDown();
 		}
-		else if (m_position.y > ball.position().y)
+		else if (m_position.y > ballYPosition)
 		{
 			moveUp();
 		}

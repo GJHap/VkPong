@@ -5,7 +5,7 @@ namespace vkPong
 {
 	static void checkBallCollision(Ball& ball, const Paddle& player, const Paddle& opponent)
 	{
-		if (ball.collidedWithPaddle(player) || ball.collidedWithPaddle(opponent))
+		if (player.collidedWithBall(ball) || opponent.collidedWithBall(ball))
 		{
 			ball.toggleDirectionX();
 		}
@@ -34,7 +34,7 @@ namespace vkPong
 		{
 			glfwPollEvents();
 			checkBallCollision(m_ball, m_player, m_opponent);
-			m_opponent.move(m_ball);
+			m_opponent.move(m_ball.position().y);
 			m_ball.move();
 			vkPong::render(m_vulkanState, m_player, m_opponent, m_ball);
 		}

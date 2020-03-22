@@ -9,6 +9,22 @@ namespace vkPong
 
 	const float Paddle::bottom() const { return m_position.y + height * 0.5f; }
 
+	const bool Paddle::collidedWithBall(const Ball& ball) const
+	{
+		bool result = false;
+		if (ball.xDirectionSign() == ballCollisionDirection())
+		{
+			const Position& ballPosition = ball.position();
+
+			result = ballPosition.x >= left()
+				&& ballPosition.x <= right()
+				&& ballPosition.y <= bottom()
+				&& ballPosition.y >= top();
+		}
+
+		return result;
+	}
+
 	const float Paddle::left() const { return m_position.x - width * 0.5f; }
 
 	void Paddle::moveUp()

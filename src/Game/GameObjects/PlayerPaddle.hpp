@@ -8,5 +8,7 @@ namespace vkPong
 	{
 	public:
 		explicit PlayerPaddle();
+	protected:
+		const float ballCollisionDirection() const override;
 	};
 }

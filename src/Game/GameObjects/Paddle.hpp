@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameObject.hpp"
+#include "Ball.hpp"
 
 namespace vkPong
 {
@@ -11,15 +12,18 @@ namespace vkPong
 		constexpr static float width{ 0.1f };
 		const float m_verticalIncrement;
 	public:
-		const float bottom() const;
-		const float left() const;
+		const virtual bool collidedWithBall(const Ball&) const;
 		void moveDown();
 		void moveUp();
-		const float right() const;
-		const float top() const;
 		const uint32_t vertexCount() const override;
 		std::vector<VertexData> vertexData() const override;
 	protected:
 		explicit Paddle(const Position&, const float&);
+		const virtual float ballCollisionDirection() const = 0;
+	private:
+		const float bottom() const;
+		const float left() const;
+		const float right() const;
+		const float top() const;
 	};
 }
