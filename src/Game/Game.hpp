@@ -13,6 +13,7 @@ namespace vkPong
 	{
 	private:
 		bool m_continueGame{ true };
+		bool m_windowIconified{ false };
 		PlayerPaddle m_player;
 		OpponentPaddle m_opponent;
 		Ball m_ball;
@@ -21,8 +22,10 @@ namespace vkPong
 	public:
 		explicit Game(GLFWwindow*, VulkanState& vulkanState);
 		void acceptInput(int);
+		void respondToWindowIconified(int);
 		void run();
 	private:
 		void checkBallCollision();
+		void pollWhileWindowIconified();
 	};
 }
