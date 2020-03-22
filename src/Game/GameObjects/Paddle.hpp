@@ -9,7 +9,7 @@ namespace vkPong
 	private:
 		constexpr static float height{ 0.7f };
 		constexpr static float width{ 0.1f };
-		constexpr static float verticalIncrement{ 0.1f };
+		const float m_verticalIncrement;
 	public:
 		const float bottom() const;
 		const float left() const;
@@ -20,6 +20,6 @@ namespace vkPong
 		const uint32_t vertexCount() const override;
 		std::vector<VertexData> vertexData() const override;
 	protected:
-		explicit Paddle(const Position&);
+		explicit Paddle(const Position&, const float&);
 	};
 }

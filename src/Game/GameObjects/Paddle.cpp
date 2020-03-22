@@ -2,8 +2,8 @@
 
 namespace vkPong
 {
-	Paddle::Paddle(const Position& position)
-		: GameObject(position)
+	Paddle::Paddle(const Position& position, const float& verticalIncrement)
+		: GameObject(position), m_verticalIncrement{ verticalIncrement }
 	{
 	}
 
@@ -13,12 +13,12 @@ namespace vkPong
 
 	void Paddle::moveUp()
 	{
-		m_position = { m_position.x, m_position.y - verticalIncrement };
+		m_position = { m_position.x, m_position.y - m_verticalIncrement };
 	}
 
 	void Paddle::moveDown()
 	{
-		m_position = { m_position.x, m_position.y + verticalIncrement };
+		m_position = { m_position.x, m_position.y + m_verticalIncrement };
 	}
 
 	const float Paddle::right() const { return m_position.x + width * 0.5f; }

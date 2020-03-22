@@ -5,7 +5,7 @@
 namespace vkPong
 {
 	OpponentPaddle::OpponentPaddle()
-		: Paddle({ 0.95f, 0.65f })
+		: Paddle({ 0.95f, 0.65f }, 0.01f)
 	{
 	}
 
