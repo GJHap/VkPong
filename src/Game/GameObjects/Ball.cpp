@@ -4,6 +4,21 @@
 
 namespace vkPong
 {
+	static float sign(const float& x)
+	{
+		float result = 0.0f;
+		if (x < 0)
+		{
+			result = -1.0f;
+		}
+		else if (x > 0)
+		{
+			result = 1.0f;
+		}
+
+		return result;
+	}
+
 	Ball::Ball()
 		: GameObject{ {0.0f, 0.0f} }, m_direction{ Direction({0.0005f, 0.0005f}) } {}
 
@@ -20,7 +35,7 @@ namespace vkPong
 
 	void Ball::toggleDirectionX()
 	{
-		m_direction = { -(m_direction.x + direction_increment), m_direction.y + direction_increment };
+		m_direction = { -(m_direction.x + xDirectionSign() * direction_increment), m_direction.y + yDirectionSign() * direction_increment };
 	}
 
 	void Ball::toggleDirectionY()
@@ -45,18 +60,7 @@ namespace vkPong
 		return vertexData;
 	}
 
-	float Ball::xDirectionSign() const
-	{
-		float result = 0.0f;
-		if (m_direction.x < 0)
-		{
-			result = -1.0f;
-		}
-		else if (m_direction.x > 0)
-		{
-			result = 1.0f;
-		}
+	float Ball::xDirectionSign() const { return sign(m_direction.x); }
 
-		return result;
-	}
+	float Ball::yDirectionSign() const { return sign(m_direction.y); }
 }

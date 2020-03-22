@@ -9,7 +9,7 @@ namespace vkPong
 	{
 	private:
 		Direction m_direction;
-		constexpr static float direction_increment{ 0.00001f };
+		constexpr static float direction_increment{ 0.00005f };
 		constexpr static double radius{ 0.1 };
 	public:
 		explicit Ball();
@@ -20,5 +20,7 @@ namespace vkPong
 		const uint32_t vertexCount() const override;
 		std::vector<VertexData> vertexData() const override;
 		float xDirectionSign() const;
+	private:
+		float yDirectionSign() const;
 	};
 }
