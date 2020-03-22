@@ -1,15 +1,10 @@
 #pragma once
 
 #include "../vulkanhpp_include.hpp"
+#include "../QueueInfo.hpp"
 
 namespace vkPong
 {
-	struct QueueInfo
-	{
-		uint32_t queueFamilyIndex;
-		vk::Queue queue;
-	};
-
 	struct LogicalDeviceInfo
 	{
 		vk::Device logicalDevice;

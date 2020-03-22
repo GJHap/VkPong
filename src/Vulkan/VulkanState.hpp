@@ -2,6 +2,7 @@
 
 #include "vulkanhpp_include.hpp"
 #include "BufferInfo.hpp"
+#include "QueueInfo.hpp"
 #include "../Structs/VertexData.hpp"
 
 #include <GLFW/glfw3.h>
@@ -18,7 +19,7 @@ namespace vkPong
 		std::vector<vk::Fence> m_fences;
 		vk::Pipeline m_graphicsPipeline;
 		vk::PipelineLayout m_graphicsPipelineLayout;
-		vk::Queue m_graphicsQueue;
+		QueueInfo m_graphicsQueueInfo;
 		std::vector<vk::Semaphore> m_imageAvailableSemaphores;
 		std::vector<vk::Semaphore> m_imageRenderedSemaphores;
 		vk::Instance m_instance;
@@ -26,7 +27,7 @@ namespace vkPong
 		std::vector<BufferInfo> m_opponentVertexBuffers;
 		vk::PhysicalDevice m_physicalDevice;
 		std::vector<BufferInfo> m_playerVertexBuffers;
-		vk::Queue m_presentQueue;
+		QueueInfo m_presentQueueInfo;
 		vk::RenderPass m_renderPass;
 		vk::SurfaceKHR m_surface;
 		vk::Extent2D m_surfaceExtent;
@@ -34,7 +35,6 @@ namespace vkPong
 		std::vector<vk::Framebuffer> m_swapchainFramebuffers;
 		std::vector<vk::Image> m_swapchainImages;
 		std::vector<vk::ImageView> m_swapchainImageViews;
-
 	public:
 		explicit VulkanState(GLFWwindow*);
 		~VulkanState();
@@ -52,8 +52,12 @@ namespace vkPong
 		BufferInfo& playerVertexBuffer(const uint32_t&);
 		const vk::Queue& presentQueue() const;
 		const vk::RenderPass& renderPass() const;
+		void resetSwapchain();
 		const vk::Extent2D& surfaceExtent() const;
 		const vk::SwapchainKHR& swapchain() const;
 		uint32_t swapchainImageCount() const;
+	private:
+		void cleanupSwapchain();
+		void setupSwapchain();
 	};
 }

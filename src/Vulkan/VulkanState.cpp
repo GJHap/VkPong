@@ -4,6 +4,11 @@
 
 namespace vkPong
 {
+	static vk::SurfaceFormatKHR chooseSurfaceFormat(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface)
+	{
+		return physicalDevice.getSurfaceFormatsKHR(surface)[0];
+	}
+
 	VulkanState::VulkanState(GLFWwindow* glfwWindow)
 		: m_instance(createInstance())
 	{
@@ -13,63 +18,20 @@ namespace vkPong
 
 		LogicalDeviceInfo logicalDeviceInfo = createLogicalDevice(m_physicalDevice, m_surface);
 		m_logicalDevice = logicalDeviceInfo.logicalDevice;
-		m_graphicsQueue = logicalDeviceInfo.graphicsQueueInfo.queue;
-		m_presentQueue = logicalDeviceInfo.presentQueueInfo.queue;
-
-		std::vector<vk::SurfaceFormatKHR> surfaceFormats = m_physicalDevice.getSurfaceFormatsKHR(m_surface);
-		vk::SurfaceFormatKHR surfaceFormat = surfaceFormats[0];
-		vk::SurfaceCapabilitiesKHR surfaceCapabilities = m_physicalDevice.getSurfaceCapabilitiesKHR(m_surface);
-		m_surfaceExtent = surfaceCapabilities.currentExtent;
-
-		m_renderPass = createRenderPass(m_logicalDevice, surfaceFormat.format);
+		m_graphicsQueueInfo = logicalDeviceInfo.graphicsQueueInfo;
+		m_presentQueueInfo = logicalDeviceInfo.presentQueueInfo;
+		m_commandPool = createCommandPool(m_logicalDevice, m_graphicsQueueInfo.queueFamilyIndex);
+		m_renderPass = createRenderPass(m_logicalDevice, chooseSurfaceFormat(m_physicalDevice, m_surface).format);
 		m_graphicsPipelineLayout = createGraphicsPipelineLayout(m_logicalDevice);
-		m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass, m_surfaceExtent);
-		m_swapchain = createSwapchain(m_logicalDevice, m_physicalDevice, m_surface, surfaceFormat, surfaceCapabilities);
-		m_swapchainImages = m_logicalDevice.getSwapchainImagesKHR(m_swapchain);
-		std::transform(m_swapchainImages.cbegin(), m_swapchainImages.cend(), std::back_inserter(m_swapchainImageViews), [this, surfaceFormat](VkImage swapchainImage)
-		{
-			return createImageView(m_logicalDevice, swapchainImage, surfaceFormat.format);
-		});
-		std::transform(m_swapchainImageViews.cbegin(), m_swapchainImageViews.cend(), std::back_inserter(m_swapchainFramebuffers), [this](VkImageView swapchainImageView)
-		{
-			return createFramebuffer(m_logicalDevice, swapchainImageView, m_renderPass, m_surfaceExtent);
-		});
-
-		m_commandPool = createCommandPool(m_logicalDevice, logicalDeviceInfo.graphicsQueueInfo.queueFamilyIndex);
-		m_playerVertexBuffers.resize(swapchainImageCount());
-		m_opponentVertexBuffers.resize(swapchainImageCount());
-		m_ballVertexBuffers.resize(swapchainImageCount());
-		std::generate_n(std::back_inserter(m_commandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_imageAvailableSemaphores), swapchainImageCount(), [this]() { return createSemaphore(m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_imageRenderedSemaphores), swapchainImageCount(), [this]() { return createSemaphore(m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_fences), swapchainImageCount(), [this]() { return createFence(m_logicalDevice); });
+		setupSwapchain();
 	}
 
 	VulkanState::~VulkanState()
 	{
-		m_logicalDevice.waitIdle();
-		for (vk::Fence& fence : m_fences) m_logicalDevice.destroyFence(fence);
-		for (vk::Semaphore& semaphore : m_imageRenderedSemaphores) m_logicalDevice.destroySemaphore(semaphore);
-		for (vk::Semaphore& semaphore : m_imageAvailableSemaphores) m_logicalDevice.destroySemaphore(semaphore);
-		m_logicalDevice.freeCommandBuffers(m_commandPool, vk::ArrayProxy<const vk::CommandBuffer>(m_commandBuffers));
-		m_logicalDevice.destroyCommandPool(m_commandPool);
-		for (vk::Framebuffer& framebuffer : m_swapchainFramebuffers) m_logicalDevice.destroyFramebuffer(framebuffer);
-		for (vk::ImageView& imageView : m_swapchainImageViews) m_logicalDevice.destroyImageView(imageView);
-		m_logicalDevice.destroySwapchainKHR(m_swapchain);
-		m_logicalDevice.destroyPipeline(m_graphicsPipeline);
+		cleanupSwapchain();
 		m_logicalDevice.destroyPipelineLayout(m_graphicsPipelineLayout);
 		m_logicalDevice.destroyRenderPass(m_renderPass);
-		for (std::vector<BufferInfo>::size_type i = 0; i < swapchainImageCount(); ++i)
-		{
-			m_logicalDevice.freeMemory(m_playerVertexBuffers[i].bufferMemory);
-			m_logicalDevice.destroyBuffer(m_playerVertexBuffers[i].buffer);
-
-			m_logicalDevice.freeMemory(m_opponentVertexBuffers[i].bufferMemory);
-			m_logicalDevice.destroyBuffer(m_opponentVertexBuffers[i].buffer);
-
-			m_logicalDevice.freeMemory(m_ballVertexBuffers[i].bufferMemory);
-			m_logicalDevice.destroyBuffer(m_ballVertexBuffers[i].buffer);
-		}
+		m_logicalDevice.destroyCommandPool(m_commandPool);
 		m_logicalDevice.destroy();
 		m_instance.destroySurfaceKHR(m_surface);
 #ifndef NDEBUG
@@ -86,6 +48,28 @@ namespace vkPong
 	const vk::CommandBuffer& VulkanState::commandBuffer(const uint32_t& index) const
 	{
 		return m_commandBuffers[index];
+	}
+
+	void VulkanState::cleanupSwapchain()
+	{
+		m_logicalDevice.waitIdle();
+		for (uint32_t i = 0; i < swapchainImageCount(); ++i)
+		{
+			m_logicalDevice.destroyFence(m_fences[i]);
+			m_logicalDevice.destroySemaphore(m_imageRenderedSemaphores[i]);
+			m_logicalDevice.destroySemaphore(m_imageAvailableSemaphores[i]);
+			m_ballVertexBuffers[i].free(m_logicalDevice);
+			m_ballVertexBuffers[i].setNullHandles();
+			m_opponentVertexBuffers[i].free(m_logicalDevice);
+			m_opponentVertexBuffers[i].setNullHandles();
+			m_playerVertexBuffers[i].free(m_logicalDevice);
+			m_playerVertexBuffers[i].setNullHandles();
+			m_logicalDevice.destroyFramebuffer(m_swapchainFramebuffers[i]);
+			m_logicalDevice.destroyImageView(m_swapchainImageViews[i]);
+		}
+		m_logicalDevice.freeCommandBuffers(m_commandPool, vk::ArrayProxy<const vk::CommandBuffer>{m_commandBuffers});
+		m_logicalDevice.destroySwapchainKHR(m_swapchain);
+		m_logicalDevice.destroyPipeline(m_graphicsPipeline);
 	}
 
 	const vk::Fence& VulkanState::fence(const uint32_t& index) const
@@ -105,7 +89,7 @@ namespace vkPong
 
 	const vk::Queue& VulkanState::graphicsQueue() const
 	{
-		return m_graphicsQueue;
+		return m_graphicsQueueInfo.queue;
 	}
 
 	const vk::Semaphore& VulkanState::imageAvailableSemaphore(const uint32_t& index) const
@@ -140,12 +124,51 @@ namespace vkPong
 
 	const vk::Queue& VulkanState::presentQueue() const
 	{
-		return m_presentQueue;
+		return m_presentQueueInfo.queue;
+	}
+
+	void VulkanState::setupSwapchain()
+	{
+		vk::SurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(m_physicalDevice, m_surface);
+		vk::SurfaceCapabilitiesKHR surfaceCapabilities = m_physicalDevice.getSurfaceCapabilitiesKHR(m_surface);
+		m_surfaceExtent = surfaceCapabilities.currentExtent;
+
+		m_graphicsPipeline = createGraphicsPipeline(m_graphicsPipelineLayout, m_logicalDevice, m_renderPass, m_surfaceExtent);
+		m_swapchain = createSwapchain(m_logicalDevice, m_physicalDevice, m_surface, surfaceFormat, surfaceCapabilities);
+		m_swapchainImages = m_logicalDevice.getSwapchainImagesKHR(m_swapchain);
+		m_swapchainImageViews.resize(swapchainImageCount());
+		std::transform(m_swapchainImages.cbegin(), m_swapchainImages.cend(), m_swapchainImageViews.begin(), [this, surfaceFormat](VkImage swapchainImage)
+		{
+			return createImageView(m_logicalDevice, swapchainImage, surfaceFormat.format);
+		});
+		m_swapchainFramebuffers.resize(swapchainImageCount());
+		std::transform(m_swapchainImageViews.cbegin(), m_swapchainImageViews.cend(), m_swapchainFramebuffers.begin(), [this](VkImageView swapchainImageView)
+		{
+			return createFramebuffer(m_logicalDevice, swapchainImageView, m_renderPass, m_surfaceExtent);
+		});
+
+		m_playerVertexBuffers.resize(swapchainImageCount());
+		m_opponentVertexBuffers.resize(swapchainImageCount());
+		m_ballVertexBuffers.resize(swapchainImageCount());
+		m_commandBuffers.resize(swapchainImageCount());
+		std::generate_n(m_commandBuffers.begin(), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
+		m_imageAvailableSemaphores.resize(swapchainImageCount());
+		std::generate_n(m_imageAvailableSemaphores.begin(), swapchainImageCount(), [this]() { return createSemaphore(m_logicalDevice); });
+		m_imageRenderedSemaphores.resize(swapchainImageCount());
+		std::generate_n(m_imageRenderedSemaphores.begin(), swapchainImageCount(), [this]() { return createSemaphore(m_logicalDevice); });
+		m_fences.resize(swapchainImageCount());
+		std::generate_n(m_fences.begin(), swapchainImageCount(), [this]() { return createFence(m_logicalDevice); });
 	}
 
 	const vk::RenderPass& VulkanState::renderPass() const
 	{
 		return m_renderPass;
+	}
+
+	void VulkanState::resetSwapchain()
+	{
+		cleanupSwapchain();
+		setupSwapchain();
 	}
 
 	const vk::Extent2D& VulkanState::surfaceExtent() const

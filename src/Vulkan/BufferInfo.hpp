@@ -8,5 +8,8 @@ namespace vkPong
 	{
 		vk::Buffer buffer;
 		vk::DeviceMemory bufferMemory;
+
+		void free(const vk::Device&);
+		void setNullHandles();
 	};
 }
