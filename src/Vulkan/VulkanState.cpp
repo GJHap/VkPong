@@ -40,9 +40,9 @@ namespace vkPong
 		m_opponentVertexBuffers.resize(swapchainImageCount());
 		m_ballVertexBuffers.resize(swapchainImageCount());
 		std::generate_n(std::back_inserter(m_commandBuffers), swapchainImageCount(), [this]() { return createCommandBuffer(m_commandPool, m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_imageAvailableSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_imageRenderedSemaphores), m_swapchainFramebuffers.size(), [this]() { return createSemaphore(m_logicalDevice); });
-		std::generate_n(std::back_inserter(m_fences), m_swapchainFramebuffers.size(), [this]() { return createFence(m_logicalDevice); });
+		std::generate_n(std::back_inserter(m_imageAvailableSemaphores), swapchainImageCount(), [this]() { return createSemaphore(m_logicalDevice); });
+		std::generate_n(std::back_inserter(m_imageRenderedSemaphores), swapchainImageCount(), [this]() { return createSemaphore(m_logicalDevice); });
+		std::generate_n(std::back_inserter(m_fences), swapchainImageCount(), [this]() { return createFence(m_logicalDevice); });
 	}
 
 	VulkanState::~VulkanState()
@@ -72,7 +72,9 @@ namespace vkPong
 		}
 		m_logicalDevice.destroy();
 		m_instance.destroySurfaceKHR(m_surface);
+#ifndef NDEBUG
 		m_instance.destroyDebugReportCallbackEXT(m_debugReportCallback, nullptr, getVkDestroyDebugReportCallbackEXTDispatchLoader(m_instance));
+#endif
 		m_instance.destroy();
 	}
 
