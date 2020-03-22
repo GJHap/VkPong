@@ -31,6 +31,7 @@ namespace vkPong
 		if (result.result == vk::Result::eSuboptimalKHR)
 		{
 			vulkanState.resetSwapchain();
+			idx = 0;
 			return;
 		}
 
