@@ -36,7 +36,6 @@ namespace vkPong
 			checkBallCollision(m_ball, m_player, m_opponent);
 			m_opponent.move(m_ball);
 			m_ball.move();
-
 			vkPong::render(m_vulkanState, m_player, m_opponent, m_ball);
 		}
 	}
