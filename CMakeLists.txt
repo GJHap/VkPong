@@ -24,7 +24,6 @@ set(SOURCE_LIST
     "src/Game/Renderer.hpp"
     "src/Game/GameObjects/Ball.cpp"
     "src/Game/GameObjects/Ball.hpp"
-    "src/Game/GameObjects/BallVertices.hpp"
     "src/Game/GameObjects/GameObject.cpp"
     "src/Game/GameObjects/GameObject.hpp"
     "src/Game/GameObjects/OpponentPaddle.cpp"

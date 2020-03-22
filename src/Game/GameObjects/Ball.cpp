@@ -1,7 +1,7 @@
 #include "Ball.hpp"
 #include "BallVertices.hpp"
 
-#include <algorithm>
+#include <cmath>
 
 namespace vkPong
 {
@@ -49,13 +49,13 @@ namespace vkPong
 
 	std::vector<VertexData> Ball::vertexData() const
 	{
-		std::vector<VertexData> transformation(vertexCount());
-		std::transform(ballVertexData.cbegin(), ballVertexData.cend(), transformation.begin(), [this](VertexData vertex)
+		std::vector<VertexData> vertexData(vertexCount());
+		vertexData[0] = { {m_position.x, m_position.y}, GameObject::color() };
+		for (size_t i = 0; i < vertexCount() - 1; ++i)
 		{
-			VertexData transformedVertex = { { vertex.position.x + m_position.x, vertex.position.y + m_position.y }, vertex.color };
-			return transformedVertex;
-		});
+			vertexData[i + 1] = { {static_cast<float>((radius * cos(i) + m_position.x)), static_cast<float>((radius * sin(i)) + m_position.y)}, GameObject::color() };
+		}
 
-		return transformation;
+		return vertexData;
 	}
 }
