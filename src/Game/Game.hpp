@@ -20,7 +20,9 @@ namespace vkPong
 		VulkanState& m_vulkanState;
 	public:
 		explicit Game(GLFWwindow*, VulkanState& vulkanState);
-		void run();
 		void acceptInput(int);
+		void run();
+	private:
+		void checkBallCollision();
 	};
 }

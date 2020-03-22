@@ -4,14 +4,20 @@
 
 namespace vkPong
 {
-	static float sign(const float& x)
+	static bool collidedWithWall(const float& z)
+	{
+		return z <= -1
+			|| z >= 1;
+	}
+
+	static float sign(const float& z)
 	{
 		float result = 0.0f;
-		if (x < 0)
+		if (z < 0)
 		{
 			result = -1.0f;
 		}
-		else if (x > 0)
+		else if (z > 0)
 		{
 			result = 1.0f;
 		}
@@ -20,17 +26,21 @@ namespace vkPong
 	}
 
 	Ball::Ball()
-		: GameObject{ {0.0f, 0.0f} }, m_direction{ Direction({0.0005f, 0.0005f}) } {}
+		: GameObject{ default_position }, m_direction{ default_direction } {}
 
-	bool Ball::collidedWithWall() const
-	{
-		return m_position.y <= -1
-			|| m_position.y >= 1;
-	}
+	bool Ball::collidedWithHorizontalWall() const { return collidedWithWall(m_position.x); }
+
+	bool Ball::collidedWithVerticalWall() const { return collidedWithWall(m_position.y); }
 
 	void Ball::move()
 	{
 		m_position = { m_position.x + m_direction.x, m_position.y + m_direction.y };
+	}
+
+	void Ball::reset()
+	{
+		m_position = default_position;
+		m_direction = default_direction;
 	}
 
 	void Ball::toggleDirectionX()
